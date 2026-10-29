@@ -6,7 +6,7 @@ ExpenseSnap là dự án ứng dụng quản lý chi tiêu cá nhân, hướng t
 ## Công nghệ
 
 - **Frontend:** Flutter / Dart
-- **Backend:** Django và Python
+- **Backend:** FrameWork Django và Python
 - **Thư viện đã khai báo:** Firebase (Flutter), Django REST Framework, Simple JWT và Firebase Admin (backend)
 
 Các thư viện đã khai báo chưa đồng nghĩa những tích hợp hoặc tính năng tương ứng đã được cấu hình và hoạt động.
