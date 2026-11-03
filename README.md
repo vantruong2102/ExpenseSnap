@@ -41,11 +41,23 @@ cd Backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
+Copy-Item .env.example .env   # sau đó điền DJANGO_SECRET_KEY trong file .env
 python manage.py migrate
 python manage.py runserver
 ```
 
-Mặc định Django chạy tại <http://127.0.0.1:8000/>. Hiện tại URL được khai báo là `/admin/`; chưa có API giao dịch để frontend sử dụng.
+Mặc định Django chạy tại <http://127.0.0.1:8000/>. Các API hiện có (xác thực bằng header `Authorization: Bearer <access>`):
+
+| Method | URL | Mô tả |
+|--------|-----|-------|
+| POST | `/api/auth/register/` | Đăng ký (`full_name`, `email`, `password`, `password_confirm`), trả về user + JWT |
+| POST | `/api/auth/login/` | Đăng nhập bằng `email`, `password` |
+| POST | `/api/auth/token/refresh/` | Làm mới access token |
+| GET | `/api/auth/me/` | Thông tin người dùng hiện tại |
+| GET / POST | `/api/receipts/` | Danh sách / upload ảnh hóa đơn (multipart, trường `image`, tối đa 10MB) |
+| GET / DELETE | `/api/receipts/<id>/` | Xem / xóa ảnh hóa đơn |
+
+Khi chạy app trên điện thoại thật, chạy backend bằng `python manage.py runserver 0.0.0.0:8000`, thêm IP máy tính vào `DJANGO_ALLOWED_HOSTS` và chạy frontend với `flutter run --dart-define=API_BASE_URL=http://<IP-máy-tính>:8000`.
 
 ## Chạy frontend
 
