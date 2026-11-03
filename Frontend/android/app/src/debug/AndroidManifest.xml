@@ -4,4 +4,6 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Allows calling the local Django server over http:// while developing -->
+    <application android:usesCleartextTraffic="true"/>
 </manifest>

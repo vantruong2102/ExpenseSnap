@@ -66,5 +66,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>ExpenseSnap cần dùng camera để chụp ảnh hóa đơn.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>ExpenseSnap cần truy cập thư viện ảnh để chọn ảnh hóa đơn.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>ExpenseSnap không ghi âm; quyền này do thư viện camera yêu cầu.</string>
 </dict>
 </plist>
