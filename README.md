@@ -41,6 +41,7 @@ cd Backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
+Copy-Item .env.example .env   # sau đó điền DJANGO_SECRET_KEY trong file .env
 python manage.py migrate
 python manage.py runserver
 ```
