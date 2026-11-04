@@ -320,7 +320,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Widget _buildLoginLink() {
     return InkWell(
-      onTap: () => _showMessage('Chức năng đăng nhập sẽ có trong Sprint 2.'),
+      onTap: () {
+       Navigator.of(context).pop();
+    },
       child: const Padding(
         padding: EdgeInsets.symmetric(vertical: 8),
         child: Row(
