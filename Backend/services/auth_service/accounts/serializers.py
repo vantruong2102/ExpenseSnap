@@ -1,3 +1,6 @@
+import logging
+
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from firebase_admin import auth as firebase_auth
@@ -7,6 +10,7 @@ from accounts.models import FirebaseAccount
 from soa_common.firebase import get_firebase_app
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -27,7 +31,11 @@ class FirebaseLoginSerializer(serializers.Serializer):
         try:
             claims = firebase_auth.verify_id_token(value)
         except (ValueError, firebase_auth.InvalidIdTokenError, firebase_auth.CertificateFetchError) as error:
-            raise serializers.ValidationError('Phiên đăng nhập Firebase không hợp lệ hoặc đã hết hạn.') from error
+            logger.warning('Firebase ID token rejected: %s: %s', type(error).__name__, error)
+            message = 'Phiên đăng nhập Firebase không hợp lệ hoặc đã hết hạn.'
+            if settings.DEBUG:
+                message = f'{message} ({type(error).__name__}: {error})'
+            raise serializers.ValidationError(message) from error
         if not claims.get('email'):
             raise serializers.ValidationError('Tài khoản Firebase chưa có email.')
         return claims
