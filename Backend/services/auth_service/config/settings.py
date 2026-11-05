@@ -40,6 +40,22 @@ AUTH_PASSWORD_VALIDATORS = [
 REST_FRAMEWORK = {
     **REST_FRAMEWORK,
     'DEFAULT_AUTHENTICATION_CLASSES': ['rest_framework_simplejwt.authentication.JWTAuthentication'],
+    # Request đi qua API Gateway: lấy IP thật của client từ X-Forwarded-For để giới hạn tần suất (throttle) đúng người
+    'NUM_PROXIES': 1,
 }
+
+# Email (gửi OTP quên mật khẩu). Thông tin Gmail SMTP đặt trong Backend/.env
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS', 'True')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
+EMAIL_DISPLAY_NAME = os.environ.get('EMAIL_DISPLAY_NAME', 'ExpenseSnap')
+
+# OTP và bộ đếm throttle lưu trong bộ nhớ tiến trình: khởi động lại auth-service thì OTP đang chờ bị mất.
+# Khi chạy nhiều tiến trình cần chuyển sang cache dùng chung (Redis hoặc DatabaseCache).
+CACHES = {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}}
 
 SPECTACULAR_SETTINGS = {'TITLE': 'ExpenseSnap Auth Service', 'VERSION': '1.0.0', 'SERVE_INCLUDE_SCHEMA': False}

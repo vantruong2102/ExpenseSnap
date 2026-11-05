@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/validators.dart';
@@ -51,11 +52,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _isSubmitting = true);
     try {
-      await _authService.register(
+      // Tạo tài khoản Firebase rồi lấy JWT backend; AuthService tự xóa tài khoản Firebase nếu backend lỗi
+      await _authService.registerWithEmail(
         fullName: _fullNameController.text,
         email: _emailController.text,
         password: _passwordController.text,
-        passwordConfirm: _confirmController.text,
       );
       if (!mounted) return;
       _showMessage('Đăng ký thành công!');
@@ -64,6 +65,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (!mounted) return;
       setState(() => _serverErrors = error.fieldErrors);
       _showMessage(error.message);
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) return;
+      final message = switch (error.code) {
+        'email-already-in-use' => 'Email này đã có tài khoản.',
+        'invalid-email' => 'Email không hợp lệ.',
+        'weak-password' => 'Mật khẩu quá yếu.',
+        'network-request-failed' => 'Không có kết nối mạng.',
+        _ => error.message ?? 'Không thể tạo tài khoản Firebase.',
+      };
+      _showMessage(message);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -320,7 +331,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Widget _buildLoginLink() {
     return InkWell(
-      onTap: () => _showMessage('Chức năng đăng nhập sẽ có trong Sprint 2.'),
+      onTap: () {
+        Navigator.of(context).pop();
+      },
       child: const Padding(
         padding: EdgeInsets.symmetric(vertical: 8),
         child: Row(

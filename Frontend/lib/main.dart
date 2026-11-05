@@ -1,9 +1,19 @@
+
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 import 'core/theme/app_theme.dart';
-import 'screens/register/register_screen.dart';
+import 'firebase_options.dart';
+import 'screens/login/login_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Kết nối Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   runApp(const ExpenseSnapApp());
 }
 
@@ -16,7 +26,7 @@ class ExpenseSnapApp extends StatelessWidget {
       title: 'ExpenseSnap',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: const RegisterScreen(),
+      home: const LoginScreen(),
     );
   }
 }

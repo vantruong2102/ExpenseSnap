@@ -48,6 +48,7 @@ class GatewayTests(SimpleTestCase):
         self.assertEqual(url, 'http://receipt.internal:8002/api/receipts/?page=2')
         self.assertEqual(headers['Authorization'], 'Bearer token')
         self.assertEqual(headers['X-Forwarded-Host'], 'testserver')
+        self.assertEqual(headers['X-Forwarded-For'], '127.0.0.1')
         self.assertNotIn('X-Internal', headers)
 
     def test_media_is_served_by_receipt_service(self, request_mock, _discover):

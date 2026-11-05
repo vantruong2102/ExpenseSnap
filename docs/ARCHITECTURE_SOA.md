@@ -26,7 +26,7 @@ Backend ExpenseSnap được xây dựng theo **kiến trúc hướng dịch v�
 | Service | Cổng | Trách nhiệm | Dữ liệu sở hữu |
 |---------|------|-------------|----------------|
 | `api-gateway` | 8000 | Điểm vào duy nhất cho client; định tuyến; API tổng hợp `/api/overview/`; danh mục `/api/services/` | Không có |
-| `auth-service` | 8001 | Đăng ký, đăng nhập, làm mới token, `me` | Bảng User |
+| `auth-service` | 8001 | Đổi Firebase ID token lấy JWT (`/api/auth/firebase/`), làm mới token, `me`, quên mật khẩu bằng OTP qua email | Bảng User + liên kết Firebase UID |
 | `receipt-service` | 8002 | Upload / liệt kê / xem / xóa / thống kê ảnh hóa đơn | Bảng Receipt + file ảnh |
 | `registry-service` | 8010 | Service đăng ký, gửi heartbeat và tra cứu nhau | Bảng ServiceInstance |
 
@@ -47,7 +47,26 @@ Bảng dưới đi theo 8 nguyên tắc thiết kế service của Thomas Erl. D
 | 7 | **Khả năng khám phá** (Service Discoverability) | Khi khởi động, service tự đăng ký với `registry-service` (tên, phiên bản, URL, link hợp đồng, mô tả) và gửi heartbeat mỗi 20 giây. Service quá 60 giây không gửi heartbeat bị coi là `DOWN` và không được trả về khi tra cứu. Có thể xem danh mục tại `GET /api/services/`. | `soa_common/apps.py`, `soa_common/registry_client.py`, `registry_service/registry/` |
 | 8 | **Khả năng kết hợp** (Service Composability) | `GET /api/overview/` của gateway ghép `auth-service /api/auth/me/` với `receipt-service /api/receipts/stats/` thành một API mới (thông tin người dùng + số hóa đơn tổng và hôm nay). | `gateway/routing/views.py` (`OverviewView`) |
 
-## 3. Luồng một request
+## 3. Đăng nhập với Firebase
+
+Firebase Auth là **nơi duy nhất giữ mật khẩu** (email/mật khẩu, Google). Hệ thống chỉ có một tài khoản cho mỗi người:
+
+```text
+Flutter ──(1) đăng nhập / đăng ký──► Firebase Auth ──► Firebase ID token
+Flutter ──(2) POST /api/auth/firebase/ {id_token}──► Gateway ──► auth-service
+                       auth-service: verify_id_token() → tìm hoặc tạo User → trả JWT hệ thống
+Flutter ──(3) Authorization: Bearer <JWT>──► Gateway ──► receipt-service (tự kiểm tra JWT)
+```
+
+- Chỉ `auth-service` biết tới Firebase, qua `soa_common/firebase.py`. Các service khác chỉ tin JWT nội bộ, nên muốn thay Firebase bằng nhà cung cấp khác thì chỉ phải sửa `auth-service` (Loose Coupling, Abstraction).
+- User trong database có mật khẩu không dùng được (`set_unusable_password`). Bảng `FirebaseAccount` liên kết Firebase UID với User.
+- Quên mật khẩu: auth-service gửi OTP qua Gmail SMTP, xác minh OTP, rồi đổi mật khẩu trên Firebase bằng Firebase Admin.
+- JWT hết hạn (30 phút) thì app tự lấy Firebase ID token mới và đổi lại JWT (`ReceiptService` thử lại một lần khi gặp 401).
+- Gateway chuyển tiếp `X-Forwarded-For`, nhờ đó giới hạn tần suất gửi OTP (3 lần/giờ) được tính theo IP của người dùng, không theo gateway.
+
+Cần cấu hình trong `Backend/.env`: `GOOGLE_APPLICATION_CREDENTIALS` (file service account) và các biến `EMAIL_*`. Thiếu cấu hình thì các endpoint liên quan trả `503`.
+
+## 4. Luồng một request
 
 Ví dụ: upload ảnh hóa đơn `POST /api/receipts/`.
 
@@ -58,13 +77,13 @@ Ví dụ: upload ảnh hóa đơn `POST /api/receipts/`.
 5. `receipt-service` kiểm tra chữ ký JWT, lưu ảnh với `user_id` lấy từ token, rồi trả về link ảnh theo host của gateway.
 6. Gateway trả response về Flutter. Nếu service không chạy, gateway trả `503 {"detail": "..."}`.
 
-## 4. Chạy hệ thống
+## 5. Chạy hệ thống
 
 ```powershell
 cd Backend
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-copy .env.example .env      # điền DJANGO_SECRET_KEY, JWT_SIGNING_KEY, SERVICE_REGISTRY_TOKEN
+copy .env.example .env      # điền các khóa, EMAIL_* và GOOGLE_APPLICATION_CREDENTIALS
 .\run_services.ps1 -Migrate # lần đầu; các lần sau chỉ cần .\run_services.ps1
 ```
 
@@ -79,7 +98,7 @@ Script mở 4 cửa sổ, registry chạy trước. Ứng dụng Flutter vẫn g
 
 Chạy test: vào từng thư mục `Backend/services/<service>/` rồi chạy `python manage.py test`.
 
-## 5. Giới hạn hiện tại và hướng mở rộng
+## 6. Giới hạn hiện tại và hướng mở rộng
 
 - JWT ký bằng HS256 với khóa chung `JWT_SIGNING_KEY`, nên service nào có khóa cũng tạo được token. Nếu cần chặt hơn, chuyển sang **RS256**: auth giữ private key, các service khác chỉ giữ public key.
 - Registry chỉ có một bản, nếu tắt thì gateway vẫn dùng địa chỉ đã cache nhưng service mới không đăng ký được. Khi triển khai thật có thể thay bằng Consul hoặc Eureka.

@@ -17,6 +17,8 @@ def call_service(service_name, method, full_path, request=None, body=None):
         headers = {name: request.headers[name] for name in FORWARDED_REQUEST_HEADERS if name in request.headers}
         # Service phía sau tạo URL (ví dụ link ảnh) theo địa chỉ gateway thay vì địa chỉ nội bộ
         headers['X-Forwarded-Host'] = request.get_host()
+        # IP thật của client, để service phía sau giới hạn tần suất theo người dùng chứ không theo gateway
+        headers['X-Forwarded-For'] = request.META.get('REMOTE_ADDR', '')
     return requests.request(
         method,
         f'{base_url}{full_path}',

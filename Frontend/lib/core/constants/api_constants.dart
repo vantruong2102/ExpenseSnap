@@ -16,8 +16,10 @@ class ApiConstants {
     return 'http://127.0.0.1:8000';
   }
 
-  static const String register = '/api/auth/register/';
-  static const String login = '/api/auth/login/';
+  static const String firebaseLogin = '/api/auth/firebase/';
+  static const String passwordResetRequest = '/api/auth/password-reset/request/';
+  static const String passwordResetVerify = '/api/auth/password-reset/verify/';
+  static const String passwordResetComplete = '/api/auth/password-reset/complete/';
   static const String receipts = '/api/receipts/';
 
   static const Duration timeout = Duration(seconds: 20);

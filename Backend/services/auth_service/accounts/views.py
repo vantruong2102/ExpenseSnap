@@ -1,18 +1,30 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.views import TokenObtainPairView
 
-from accounts.serializers import EmailTokenObtainPairSerializer, RegisterSerializer, UserSerializer
+from accounts.serializers import FirebaseLoginSerializer, UserSerializer
+from soa_common.firebase import FirebaseNotConfigured
 
 
-class RegisterView(generics.CreateAPIView):
-    serializer_class = RegisterSerializer
+class FirebaseLoginView(generics.GenericAPIView):
+    """Đổi Firebase ID token lấy JWT của hệ thống.
+
+    Firebase Auth lo phần đăng nhập (email/mật khẩu, Google). auth-service là nơi duy nhất tin Firebase,
+    các service khác chỉ cần kiểm tra JWT nội bộ nên không phụ thuộc vào Firebase (Loose Coupling).
+    """
+
+    serializer_class = FirebaseLoginSerializer
     permission_classes = [permissions.AllowAny]
 
-    def create(self, request, *args, **kwargs):
+    def post(self, request):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except FirebaseNotConfigured:
+            return Response(
+                {'detail': 'auth-service chưa được cấu hình Firebase Admin (GOOGLE_APPLICATION_CREDENTIALS).'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
         user = serializer.save()
         refresh = RefreshToken.for_user(user)
         return Response(
@@ -21,12 +33,8 @@ class RegisterView(generics.CreateAPIView):
                 'access': str(refresh.access_token),
                 'refresh': str(refresh),
             },
-            status=status.HTTP_201_CREATED,
+            status=status.HTTP_200_OK,
         )
-
-
-class LoginView(TokenObtainPairView):
-    serializer_class = EmailTokenObtainPairSerializer
 
 
 class MeView(generics.RetrieveAPIView):
