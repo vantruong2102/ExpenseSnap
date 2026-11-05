@@ -10,37 +10,24 @@ import 'api_exception.dart';
 import 'auth_service.dart';
 
 class ReceiptService {
-  ReceiptService({http.Client? client, AuthSession? session})
+  ReceiptService({http.Client? client, AuthSession? session, this.authService})
     : _client = client ?? http.Client(),
       _session = session ?? AuthSession.instance;
 
   final http.Client _client;
   final AuthSession _session;
 
-  String _requireToken() {
-    final token = _session.accessToken;
-    if (token == null) {
-      throw const ApiException('Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.');
-    }
-    return token;
-  }
+  /// Dùng để lấy lại JWT khi hết hạn; mặc định tạo AuthService dùng chung client và session.
+  final AuthService? authService;
 
   /// Receipts of the signed-in user, newest first.
   Future<List<Receipt>> listReceipts() async {
-    final token = _requireToken();
-    final http.Response response;
-    try {
-      response = await _client
-          .get(
-            Uri.parse('${ApiConstants.baseUrl}${ApiConstants.receipts}'),
-            headers: {'Authorization': 'Bearer $token'},
-          )
-          .timeout(ApiConstants.timeout);
-    } on TimeoutException {
-      throw ApiException.network;
-    } on http.ClientException {
-      throw ApiException.network;
-    }
+    final response = await _sendAuthorized(
+      (token) => _client.get(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.receipts}'),
+        headers: {'Authorization': 'Bearer $token'},
+      ),
+    );
 
     if (response.statusCode != 200) throw ApiException.fromResponse(response);
     final body = jsonDecode(utf8.decode(response.bodyBytes)) as List<dynamic>;
@@ -48,24 +35,44 @@ class ReceiptService {
   }
 
   Future<Receipt> uploadReceipt(XFile image) async {
-    final token = _requireToken();
+    // readAsBytes works on mobile, desktop and web alike
+    final bytes = await image.readAsBytes();
 
-    final request = http.MultipartRequest('POST', Uri.parse('${ApiConstants.baseUrl}${ApiConstants.receipts}'))
-      ..headers['Authorization'] = 'Bearer $token'
-      // readAsBytes works on mobile, desktop and web alike
-      ..files.add(http.MultipartFile.fromBytes('image', await image.readAsBytes(), filename: image.name));
+    final response = await _sendAuthorized((token) async {
+      // MultipartRequest chỉ gửi được một lần, nên tạo mới cho mỗi lần thử
+      final request = http.MultipartRequest('POST', Uri.parse('${ApiConstants.baseUrl}${ApiConstants.receipts}'))
+        ..headers['Authorization'] = 'Bearer $token'
+        ..files.add(http.MultipartFile.fromBytes('image', bytes, filename: image.name));
+      return http.Response.fromStream(await _client.send(request));
+    });
 
-    final http.Response response;
+    if (response.statusCode != 201) throw ApiException.fromResponse(response);
+    return Receipt.fromJson(jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>);
+  }
+
+  /// Gửi request kèm JWT. Nếu JWT hết hạn (401) thì lấy JWT mới từ phiên Firebase và thử lại một lần.
+  Future<http.Response> _sendAuthorized(Future<http.Response> Function(String token) send) async {
+    final token = _session.accessToken;
+    if (token == null) {
+      throw const ApiException('Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.');
+    }
+
+    var response = await _withTimeout(send(token));
+    if (response.statusCode == 401) {
+      final renewer = authService ?? AuthService(client: _client, session: _session);
+      await renewer.signInToBackend(forceRefresh: true);
+      response = await _withTimeout(send(_session.accessToken!));
+    }
+    return response;
+  }
+
+  Future<http.Response> _withTimeout(Future<http.Response> request) async {
     try {
-      final streamed = await _client.send(request).timeout(ApiConstants.timeout);
-      response = await http.Response.fromStream(streamed);
+      return await request.timeout(ApiConstants.timeout);
     } on TimeoutException {
       throw ApiException.network;
     } on http.ClientException {
       throw ApiException.network;
     }
-
-    if (response.statusCode != 201) throw ApiException.fromResponse(response);
-    return Receipt.fromJson(jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>);
   }
 }

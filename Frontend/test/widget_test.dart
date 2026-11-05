@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/utils/validators.dart';
+import 'package:frontend/models/app_user.dart';
 import 'package:frontend/models/receipt.dart';
 import 'package:frontend/screens/receipt_preview/receipt_preview_screen.dart';
 import 'package:frontend/screens/register/register_screen.dart';
@@ -29,6 +30,27 @@ class _FakeReceiptService extends ReceiptService {
     uploadCount++;
     if (error != null) throw error!;
     return Receipt(id: 1, imageUrl: 'http://x/receipt.png', createdAt: DateTime(2026, 11, 3));
+  }
+}
+
+class _FakeAuthService extends AuthService {
+  _FakeAuthService({this.error, this.renewedToken, super.session});
+
+  final ApiException? error;
+  final String? renewedToken;
+  int registerCount = 0;
+
+  @override
+  Future<AppUser> registerWithEmail({required String fullName, required String email, required String password}) async {
+    registerCount++;
+    if (error != null) throw error!;
+    return const AppUser(id: 1, email: 'tri@example.com', fullName: 'Tri');
+  }
+
+  @override
+  Future<AppUser> signInToBackend({String? fullName, bool forceRefresh = false}) async {
+    AuthSession.instance.accessToken = renewedToken;
+    return const AppUser(id: 1, email: 'tri@example.com', fullName: 'Tri');
   }
 }
 
@@ -85,62 +107,90 @@ void main() {
       expect(find.text('Mật khẩu xác nhận không khớp'), findsOneWidget);
     });
 
-    testWidgets('shows server field error when email already exists', (tester) async {
-      final client = MockClient((request) async {
-        return http.Response.bytes(
-          utf8.encode(
-            jsonEncode({
-              'email': ['Email này đã được sử dụng.'],
-            }),
-          ),
-          400,
-          headers: {'content-type': 'application/json'},
-        );
-      });
-      final session = AuthSession.instance..clear();
-      await tester.pumpWidget(
-        MaterialApp(
-          home: RegisterScreen(
-            authService: AuthService(client: client, session: session),
-          ),
-        ),
+    testWidgets('shows server field error returned by backend', (tester) async {
+      final service = _FakeAuthService(
+        error: const ApiException('Phiên đăng nhập Firebase không hợp lệ.', fieldErrors: {'detail': 'x'}),
       );
+      await tester.pumpWidget(MaterialApp(home: RegisterScreen(authService: service)));
 
       await _fillRegisterForm(tester);
       await _tapRegister(tester);
       await tester.pump();
 
-      expect(find.text('Email này đã được sử dụng.'), findsWidgets);
-      expect(session.isSignedIn, isFalse);
+      expect(service.registerCount, 1);
+      expect(find.text('Phiên đăng nhập Firebase không hợp lệ.'), findsWidgets);
     });
   });
 
   group('AuthService', () {
-    test('register stores tokens in session', () async {
+    test('exchangeIdToken stores backend tokens in session', () async {
       final client = MockClient((request) async {
         final body = jsonDecode(request.body) as Map<String, dynamic>;
-        expect(request.url.path, '/api/auth/register/');
-        expect(body['email'], 'tri@example.com');
+        expect(request.url.path, '/api/auth/firebase/');
+        expect(body['id_token'], 'firebase-id-token');
+        expect(body['full_name'], 'Tri');
         return http.Response(
           jsonEncode({
             'user': {'id': 7, 'email': 'tri@example.com', 'full_name': 'Tri'},
             'access': 'access-token',
             'refresh': 'refresh-token',
           }),
-          201,
+          200,
         );
       });
       final session = AuthSession.instance..clear();
 
-      final user = await AuthService(client: client, session: session).register(
-        fullName: 'Tri',
-        email: ' tri@example.com ',
-        password: 'ExpenseSnap@2026',
-        passwordConfirm: 'ExpenseSnap@2026',
-      );
+      final user = await AuthService(
+        client: client,
+        session: session,
+      ).exchangeIdToken('firebase-id-token', fullName: ' Tri ');
 
       expect(user.id, 7);
       expect(session.accessToken, 'access-token');
+      session.clear();
+    });
+
+    test('exchangeIdToken surfaces backend error', () async {
+      final client = MockClient((request) async {
+        return http.Response.bytes(
+          utf8.encode(
+            jsonEncode({
+              'id_token': ['Token hết hạn'],
+            }),
+          ),
+          400,
+        );
+      });
+      final session = AuthSession.instance..clear();
+
+      expect(
+        () => AuthService(client: client, session: session).exchangeIdToken('bad'),
+        throwsA(isA<ApiException>().having((e) => e.message, 'message', 'Token hết hạn')),
+      );
+      expect(session.isSignedIn, isFalse);
+    });
+  });
+
+  group('ReceiptService', () {
+    test('renews expired JWT through AuthService and retries once', () async {
+      final session = AuthSession.instance
+        ..clear()
+        ..accessToken = 'expired';
+      final seenTokens = <String?>[];
+      final client = MockClient((request) async {
+        seenTokens.add(request.headers['Authorization']);
+        if (request.headers['Authorization'] == 'Bearer expired') return http.Response('{}', 401);
+        return http.Response('[]', 200);
+      });
+
+      final receipts = await ReceiptService(
+        client: client,
+        session: session,
+        authService: _FakeAuthService(session: session, renewedToken: 'fresh'),
+      ).listReceipts();
+
+      expect(receipts, isEmpty);
+      expect(seenTokens, ['Bearer expired', 'Bearer fresh']);
       session.clear();
     });
   });
