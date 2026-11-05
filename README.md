@@ -1,94 +1,133 @@
 # ExpenseSnap
 
-ExpenseSnap là dự án ứng dụng quản lý chi tiêu cá nhân, hướng tới việc lưu thông tin các khoản chi cùng ảnh hóa đơn để người dùng tiện theo dõi.
-
+Ứng dụng quản lý chi tiêu cá nhân: chụp và lưu ảnh hóa đơn, theo dõi các khoản chi.
 
 ## Công nghệ
 
-- **Frontend:** Flutter / Dart
-- **Backend:** FrameWork Django và Python
-- **Thư viện đã khai báo:** Firebase (Flutter), Django REST Framework, Simple JWT và Firebase Admin (backend)
-
-Các thư viện đã khai báo chưa đồng nghĩa những tích hợp hoặc tính năng tương ứng đã được cấu hình và hoạt động.
+- **Frontend:** Flutter / Dart, Firebase Auth (email/mật khẩu, Google), Firestore và Firebase Storage (hồ sơ cá nhân)
+- **Backend:** Python, Django, Django REST Framework, Simple JWT, Firebase Admin. Kiến trúc **SOA**, xem [docs/ARCHITECTURE_SOA.md](docs/ARCHITECTURE_SOA.md)
 
 ## Cấu trúc dự án
 
 ```text
 ExpenseSnap/
 ├── Backend/
-│   ├── config/          # Cấu hình Django và URL
-│   ├── transactions/    # App giao dịch (chưa có model/API nghiệp vụ)
-│   ├── manage.py
+│   ├── soa_common/            # Thư viện dùng chung: settings nền, registry client, Firebase, /health/
+│   ├── services/
+│   │   ├── gateway/           # :8000 – điểm vào duy nhất của app
+│   │   ├── auth_service/      # :8001 – tài khoản, JWT, quên mật khẩu
+│   │   ├── receipt_service/   # :8002 – ảnh hóa đơn
+│   │   └── registry_service/  # :8010 – danh bạ service
+│   ├── run_services.ps1       # Khởi động cả 4 service
 │   └── requirements.txt
-└── Frontend/
-    ├── lib/             # Mã nguồn Flutter
-    ├── test/            # Widget tests
-    └── pubspec.yaml
+├── Frontend/
+│   ├── lib/                   # Mã nguồn Flutter
+│   ├── test/
+│   └── run_app.ps1            # Chạy app trên mọi thiết bị (tự cấu hình adb reverse)
+└── docs/
 ```
 
 ## Yêu cầu
 
-- Python tương thích với phiên bản Django được ghim trong `Backend/requirements.txt`
-- Flutter SDK tương thích với ràng buộc Dart trong `Frontend/pubspec.yaml`
-- Git (nếu clone dự án)
+- Python 3.12 trở lên (nhóm đang dùng 3.14)
+- Flutter 3.47, Android SDK (có `platform-tools`)
+- Quyền truy cập Firebase project `expensesnap-bae4d`
 
-## Chạy backend
+## Cài đặt lần đầu
 
-Trong PowerShell, từ thư mục gốc dự án:
+### 1. Backend
 
 ```powershell
 cd Backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-Copy-Item .env.example .env   # sau đó điền DJANGO_SECRET_KEY trong file .env
-python manage.py migrate
-python manage.py runserver
+pip install -r requirements.txt
+Copy-Item .env.example .env
 ```
 
-Mặc định Django chạy tại <http://127.0.0.1:8000/>. Các API hiện có (xác thực bằng header `Authorization: Bearer <access>`):
+Nếu PowerShell báo *"running scripts is disabled"*: chạy `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
 
-| Method | URL | Mô tả |
-|--------|-----|-------|
-| POST | `/api/auth/register/` | Đăng ký (`full_name`, `email`, `password`, `password_confirm`), trả về user + JWT |
-| POST | `/api/auth/login/` | Đăng nhập bằng `email`, `password` |
-| POST | `/api/auth/token/refresh/` | Làm mới access token |
-| GET | `/api/auth/me/` | Thông tin người dùng hiện tại |
-| GET / POST | `/api/receipts/` | Danh sách / upload ảnh hóa đơn (multipart, trường `image`, tối đa 10MB) |
-| GET / DELETE | `/api/receipts/<id>/` | Xem / xóa ảnh hóa đơn |
+Điền `Backend/.env`:
 
-Khi chạy app trên điện thoại thật, chạy backend bằng `python manage.py runserver 0.0.0.0:8000`, thêm IP máy tính vào `DJANGO_ALLOWED_HOSTS` và chạy frontend với `flutter run --dart-define=API_BASE_URL=http://<IP-máy-tính>:8000`.
+| Biến | Giá trị |
+|------|---------|
+| `DJANGO_SECRET_KEY`, `JWT_SIGNING_KEY`, `SERVICE_REGISTRY_TOKEN` | Ba chuỗi ngẫu nhiên khác nhau: `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Đường dẫn file key Firebase Admin (Firebase Console → Project settings → Service accounts → Generate new private key). Để file **ngoài** repo, **không commit**. |
+| `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL` | Gmail và App Password, dùng gửi OTP quên mật khẩu |
 
-## Chạy frontend
-
-Mở terminal thứ hai tại thư mục gốc:
+### 2. Frontend
 
 ```powershell
 cd Frontend
 flutter pub get
-flutter run
 ```
 
-Chọn thiết bị hoặc emulator đang hoạt động khi được Flutter yêu cầu. Ứng dụng hiện khởi chạy màn hình Flutter mẫu.
-
-## Kiểm thử
-
-Chạy widget test của Flutter:
+Muốn **đăng nhập Google** trên máy của mình thì thêm SHA-1 debug của máy vào Firebase (Project settings → app Android `com.example.frontend` → Add fingerprint), rồi tải lại `android/app/google-services.json`. Lấy SHA-1:
 
 ```powershell
-cd Frontend
-flutter test
+keytool -list -v -alias androiddebugkey -keystore "$env:USERPROFILE\.android\debug.keystore" -storepass android -keypass android
 ```
 
-Chạy Django checks:
+## Chạy hằng ngày
+
+**Terminal 1 – backend:**
 
 ```powershell
 cd Backend
-python manage.py check
+.\run_services.ps1            # thêm -Migrate khi lần đầu chạy hoặc khi có model mới
 ```
 
-## Cấu hình và lưu ý
+Script mở 4 cửa sổ, mỗi service một cửa sổ. Kiểm tra: <http://127.0.0.1:8000/api/services/> phải có 3 service ở trạng thái `UP`. Sửa `.env` thì phải đóng 4 cửa sổ và chạy lại.
 
-- Backend hiện dùng SQLite theo cấu hình mặc định của Django.
-- Các gói Firebase có trong dependencies, nhưng cấu hình Firebase và luồng xác thực/lưu trữ chưa được thiết lập trong ứng dụng.
-- Cấu hình Django hiện dành cho phát triển cục bộ. Trước khi triển khai, cần chuyển các giá trị nhạy cảm sang biến môi trường và cấu hình `DEBUG`, `ALLOWED_HOSTS`, cơ sở dữ liệu cùng các thiết lập bảo mật phù hợp.
+**Terminal 2 – app:**
+
+```powershell
+cd Frontend
+.\run_app.ps1                 # hoặc .\run_app.ps1 -d <id thiết bị>
+```
+
+Chạy được trên **máy ảo Android, điện thoại thật (USB hoặc Wi-Fi debug), web, Windows** mà không cần sửa gì. Với Android, script chạy `adb reverse tcp:8000 tcp:8000` để cổng 8000 trên thiết bị trỏ về laptop, nên app luôn gọi `http://127.0.0.1:8000`. Vì vậy không cần biết IP laptop, không cần mở tường lửa và không cần sửa `DJANGO_ALLOWED_HOSTS`.
+
+- Nếu dùng `flutter run` trực tiếp thì phải chạy `adb reverse tcp:8000 tcp:8000` trước. Rút cáp hoặc khởi động lại adb thì phải chạy lại lệnh này.
+- Cài APK cho người khác (không có adb): `flutter build apk --debug --dart-define=API_BASE_URL=http://<IP-laptop>:8000`. Khi đó cần thêm IP đó vào `DJANGO_ALLOWED_HOSTS` và mở cổng 8000 trên tường lửa.
+
+## API (qua gateway, cổng 8000)
+
+Xác thực bằng header `Authorization: Bearer <access>`. Hợp đồng đầy đủ của từng service xem tại `http://127.0.0.1:<cổng>/api/docs/`.
+
+| Method | URL | Mô tả |
+|--------|-----|-------|
+| POST | `/api/auth/firebase/` | Đổi Firebase ID token (`id_token`, `full_name` tùy chọn) lấy user + JWT |
+| POST | `/api/auth/token/refresh/` | Làm mới access token |
+| GET | `/api/auth/me/` | Thông tin người dùng hiện tại |
+| POST | `/api/auth/password-reset/request/` · `verify/` · `complete/` | Quên mật khẩu bằng OTP qua email |
+| GET / POST | `/api/receipts/` | Danh sách / upload ảnh hóa đơn (multipart, trường `image`, tối đa 10MB) |
+| GET / DELETE | `/api/receipts/<id>/` | Xem / xóa ảnh hóa đơn |
+| GET | `/api/receipts/stats/` | Số hóa đơn tổng và hôm nay |
+| GET | `/api/overview/` | API tổng hợp: thông tin người dùng + thống kê hóa đơn |
+| GET | `/api/services/` | Danh mục service đang chạy |
+
+## Kiểm thử
+
+```powershell
+# Backend: chạy trong từng thư mục Backend/services/<service>/
+python manage.py test
+
+# Frontend
+cd Frontend
+flutter analyze
+flutter test
+```
+
+## Lỗi thường gặp
+
+| Hiện tượng | Cách xử lý |
+|------------|-----------|
+| Đăng nhập/đăng ký xong bị đăng xuất ngay | Đọc thông báo cuối màn hình. Thường do thiếu file key Firebase, backend chưa chạy, hoặc chưa `adb reverse` |
+| *"Token used too early … clock"* | Đồng hồ máy chạy backend bị lệch: bật Settings → Time & language → Set time automatically → Sync now |
+| *"Không kết nối được máy chủ"* | Backend chưa chạy, hoặc thiếu `adb reverse` (dùng `run_app.ps1`) |
+| *"Dịch vụ … tạm thời không khả dụng"* | Một trong 4 cửa sổ service bị tắt hoặc đang báo lỗi |
+| Google: `[16] Account reauth failed` | Chưa thêm SHA-1 của máy vào Firebase |
+| `flutter run` không thấy điện thoại | `adb devices`. Nếu `unauthorized` thì bấm Cho phép trên điện thoại; nếu `offline` thì `adb kill-server` rồi cắm lại cáp |
+
+Quy ước code, đặt tên nhánh và quy trình Git: [CODINGCONVENTION.md](CODINGCONVENTION.md).
