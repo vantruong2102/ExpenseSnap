@@ -502,10 +502,17 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const Spacer(),
         TextButton(
-          onPressed: () {
-            Navigator.of(context).push(
+          onPressed: () async {
+            final passwordChanged = await Navigator.of(context).push<bool>(
               MaterialPageRoute(builder: (_) => const PasswordResetScreen()),
             );
+            if (passwordChanged == true && mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Mật khẩu đã được cập nhật. Hãy đăng nhập lại.'),
+                ),
+              );
+            }
           },
           style: TextButton.styleFrom(
             padding: EdgeInsets.zero,

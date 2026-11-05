@@ -9,7 +9,9 @@ import '../../widgets/stamp_tag.dart';
 import '../../widgets/washi_tape.dart';
 
 class PasswordResetScreen extends StatefulWidget {
-  const PasswordResetScreen({super.key});
+  const PasswordResetScreen({super.key, this.initialEmail});
+
+  final String? initialEmail;
 
   @override
   State<PasswordResetScreen> createState() => _PasswordResetScreenState();
@@ -27,6 +29,12 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
   bool _busy = false;
   bool _hidePassword = true;
   String? _resetToken;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController.text = widget.initialEmail ?? '';
+  }
 
   @override
   void dispose() {
@@ -87,8 +95,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
         password: _passwordController.text,
       );
       if (!mounted) return;
-      _message('Đổi mật khẩu thành công. Hãy đăng nhập bằng mật khẩu mới.');
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(true);
     } on ApiException catch (error) {
       if (mounted) _message(error.message);
     } finally {
