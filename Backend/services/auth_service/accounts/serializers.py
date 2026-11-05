@@ -12,6 +12,10 @@ from soa_common.firebase import get_firebase_app
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
+# Chấp nhận đồng hồ máy chạy backend lệch tối đa 60 giây (mức tối đa Firebase Admin cho phép),
+# tránh lỗi "Token used too early" khi đồng hồ máy dev chưa đồng bộ
+FIREBASE_CLOCK_SKEW_SECONDS = 60
+
 
 class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source='first_name')
@@ -29,7 +33,7 @@ class FirebaseLoginSerializer(serializers.Serializer):
     def validate_id_token(self, value):
         get_firebase_app()
         try:
-            claims = firebase_auth.verify_id_token(value)
+            claims = firebase_auth.verify_id_token(value, clock_skew_seconds=FIREBASE_CLOCK_SKEW_SECONDS)
         except (ValueError, firebase_auth.InvalidIdTokenError, firebase_auth.CertificateFetchError) as error:
             logger.warning('Firebase ID token rejected: %s: %s', type(error).__name__, error)
             message = 'Phiên đăng nhập Firebase không hợp lệ hoặc đã hết hạn.'

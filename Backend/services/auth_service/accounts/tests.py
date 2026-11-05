@@ -33,7 +33,7 @@ class FirebaseLoginTests(APITestCase):
         user = User.objects.get(username='tri@example.com')
         self.assertFalse(user.has_usable_password())
         self.assertEqual(user.firebase_account.uid, 'firebase-uid-1')
-        verify_mock.assert_called_once_with('token')
+        verify_mock.assert_called_once_with('token', clock_skew_seconds=60)
 
     def test_second_login_reuses_same_user(self, _verify, _app):
         first = self.client.post(self.url, {'id_token': 'token'}, format='json')
