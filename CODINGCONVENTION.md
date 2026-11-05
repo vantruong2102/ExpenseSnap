@@ -310,7 +310,7 @@ git pull origin develop
 ```
 
 - Chạy lại đầy đủ các lệnh kiểm tra ở **Bước 3** cho cả Backend và Frontend.
-- Chạy backend (`.\run_services.ps1 -Migrate` trong thư mục `Backend/`) và frontend (`flutter run`), kiểm tra thủ công các chức năng chính hoạt động cùng nhau.
+- Chạy backend (`.\run_services.ps1 -Migrate` trong thư mục `Backend/`) và frontend (`.\run_app.ps1` trong thư mục `Frontend/`), kiểm tra thủ công các chức năng chính hoạt động cùng nhau.
 - Nếu phát hiện lỗi: thành viên phụ trách sửa trên nhánh `dev_<tên>` của mình rồi tạo PR mới vào `develop`. **Không sửa trực tiếp trên `develop`.**
 
 ### Bước 7 – Tạo Pull Request từ `develop` vào `main`
