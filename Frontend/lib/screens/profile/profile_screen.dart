@@ -1,9 +1,10 @@
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../services/login_service.dart';
+import 'edit_personal_info_screen.dart';
+import 'security_screen.dart';
 import '../login/login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -22,12 +23,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   bool _loggingOut = false;
 
+  Future<void> _editPersonalInfo() async {
+    final updated = await Navigator.of(context)
+        .push<bool>(MaterialPageRoute(builder: (_) => const EditPersonalInfoScreen()));
+    if (updated == true && mounted) setState(() {});
+  }
+
+  Future<void> _openSecurity() async {
+    final passwordChanged = await Navigator.of(context)
+        .push<bool>(MaterialPageRoute(builder: (_) => const SecurityScreen()));
+    if (passwordChanged == true && mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Mật khẩu đã được cập nhật thành công.')));
+    }
+  }
+
   void _comingSoon() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Chức năng sẽ được phát triển ở Sprint sau.'),
-        duration: Duration(seconds: 2),
-      ),
+      const SnackBar(content: Text('Chức năng sẽ được phát triển ở Sprint sau.'), duration: Duration(seconds: 2)),
     );
   }
 
@@ -36,20 +49,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Đăng xuất'),
-        content: const Text(
-          'Bạn có chắc chắn muốn đăng xuất khỏi ExpenseSnap?',
-        ),
+        content: const Text('Bạn có chắc chắn muốn đăng xuất khỏi ExpenseSnap?'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Hủy'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Hủy')),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text(
-              'Đăng xuất',
-              style: TextStyle(color: red),
-            ),
+            child: const Text('Đăng xuất', style: TextStyle(color: red)),
           ),
         ],
       ),
@@ -64,18 +69,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (!mounted) return;
 
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (_) => const LoginScreen(),
-        ),
-        (route) => false,
-      );
+      Navigator.of(context)
+          .pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Đăng xuất thất bại: $e')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Đăng xuất thất bại: $e')));
     } finally {
       if (mounted) setState(() => _loggingOut = false);
     }
@@ -130,9 +129,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: const BoxDecoration(
         color: Color(0xFFFFFAF6),
-        border: Border(
-          bottom: BorderSide(color: line),
-        ),
+        border: Border(bottom: BorderSide(color: line)),
       ),
       child: Row(
         children: [
@@ -146,34 +143,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Text(
                   'Sổ Hóa Đơn',
-                  style: TextStyle(
-                    fontFamily: AppFonts.body,
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    color: ink,
-                  ),
+                  style: TextStyle(fontFamily: AppFonts.body, fontSize: 17, fontWeight: FontWeight.bold, color: ink),
                 ),
                 SizedBox(height: 2),
                 Text(
                   'HỒ SƠ CÁ NHÂN',
-                  style: TextStyle(
-                    fontFamily: AppFonts.mono,
-                    fontSize: 10,
-                    letterSpacing: 1,
-                    color: grey,
-                  ),
+                  style: TextStyle(fontFamily: AppFonts.mono, fontSize: 10, letterSpacing: 1, color: grey),
                 ),
               ],
             ),
           ),
-          const SizedBox(
-            width: 48,
-            child: Icon(
-              Icons.account_circle,
-              color: red,
-              size: 23,
-            ),
-          ),
+          const SizedBox(width: 48, child: Icon(Icons.account_circle, color: red, size: 23)),
         ],
       ),
     );
@@ -185,12 +165,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         const Text(
           'MỤC THIẾT LẬP',
-          style: TextStyle(
-            fontFamily: AppFonts.mono,
-            fontSize: 10,
-            color: grey,
-            letterSpacing: 0.8,
-          ),
+          style: TextStyle(fontFamily: AppFonts.mono, fontSize: 10, color: grey, letterSpacing: 0.8),
         ),
         const SizedBox(height: 5),
         Row(
@@ -198,34 +173,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const Expanded(
               child: Text(
                 'Cá nhân',
-                style: TextStyle(
-                  fontFamily: AppFonts.body,
-                  fontSize: 23,
-                  fontWeight: FontWeight.bold,
-                  color: ink,
-                ),
+                style: TextStyle(fontFamily: AppFonts.body, fontSize: 23, fontWeight: FontWeight.bold, color: ink),
               ),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 5,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
               decoration: BoxDecoration(
                 color: const Color(0xFFFFE9E3),
-                border: Border.all(
-                  color: const Color(0xFFF1B9AC),
-                ),
+                border: Border.all(color: const Color(0xFFF1B9AC)),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: const Text(
                 'THẺ THÀNH VIÊN',
-                style: TextStyle(
-                  fontFamily: AppFonts.mono,
-                  fontSize: 9,
-                  letterSpacing: 0.6,
-                  color: red,
-                ),
+                style: TextStyle(fontFamily: AppFonts.mono, fontSize: 9, letterSpacing: 0.6, color: red),
               ),
             ),
           ],
@@ -236,11 +196,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _profileCard(
-    String name,
-    String email,
-    String? photo,
-  ) {
+  Widget _profileCard(String name, String email, String? photo) {
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -270,18 +226,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ? Image.network(
                               photo,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) =>
-                                  const Icon(
-                                Icons.person,
-                                color: grey,
-                                size: 35,
-                              ),
+                              errorBuilder: (_, __, ___) => const Icon(Icons.person, color: grey, size: 35),
                             )
-                          : const Icon(
-                              Icons.person,
-                              color: grey,
-                              size: 35,
-                            ),
+                          : const Icon(Icons.person, color: grey, size: 35),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -305,20 +252,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           email,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontFamily: AppFonts.mono,
-                            fontSize: 10,
-                            color: grey,
-                          ),
+                          style: const TextStyle(fontFamily: AppFonts.mono, fontSize: 10, color: grey),
                         ),
                         const SizedBox(height: 5),
                         const Text(
                           '● Sổ cái: Thành viên',
-                          style: TextStyle(
-                            fontFamily: AppFonts.mono,
-                            fontSize: 10,
-                            color: Color(0xFF806044),
-                          ),
+                          style: TextStyle(fontFamily: AppFonts.mono, fontSize: 10, color: Color(0xFF806044)),
                         ),
                       ],
                     ),
@@ -347,11 +286,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Center(
             child: Transform.rotate(
               angle: -0.025,
-              child: Container(
-                width: 93,
-                height: 18,
-                color: const Color(0xB2E9E3D5),
-              ),
+              child: Container(width: 93, height: 18, color: const Color(0xB2E9E3D5)),
             ),
           ),
         ),
@@ -365,22 +300,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Text(
             value,
-            style: const TextStyle(
-              fontFamily: AppFonts.mono,
-              fontSize: 19,
-              fontWeight: FontWeight.bold,
-              color: ink,
-            ),
+            style: const TextStyle(fontFamily: AppFonts.mono, fontSize: 19, fontWeight: FontWeight.bold, color: ink),
           ),
           const SizedBox(height: 5),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontFamily: AppFonts.body,
-              fontSize: 10,
-              color: grey,
-            ),
+            style: const TextStyle(fontFamily: AppFonts.body, fontSize: 10, color: grey),
           ),
         ],
       ),
@@ -388,11 +314,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _statDivider() {
-    return Container(
-      width: 1,
-      height: 46,
-      color: line,
-    );
+    return Container(width: 1, height: 46, color: line);
   }
 
   Widget _settingsCard() {
@@ -405,66 +327,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 12,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             color: const Color(0xFFF2ECE6),
             child: const Row(
               children: [
                 Expanded(
                   child: Text(
                     'DANH MỤC CÀI ĐẶT',
-                    style: TextStyle(
-                      fontFamily: AppFonts.mono,
-                      fontSize: 10,
-                      color: grey,
-                    ),
-                  ),
-                ),
-                Text(
-                  'TẬP 01',
-                  style: TextStyle(
-                    fontFamily: AppFonts.mono,
-                    fontSize: 10,
-                    color: grey,
+                    style: TextStyle(fontFamily: AppFonts.mono, fontSize: 10, color: grey),
                   ),
                 ),
               ],
             ),
           ),
-          _settingItem(
-            Icons.person_outline,
-            'Chỉnh sửa thông tin',
-          ),
-          _settingItem(
-            Icons.notifications_none,
-            'Nhắc nhở ghi chép',
-            trailing: '21:00 Hằng ngày',
-          ),
+          _settingItem(Icons.person_outline, 'Chỉnh sửa thông tin', onTap: _editPersonalInfo),
+          _settingItem(Icons.notifications_none, 'Nhắc nhở ghi chép', trailing: '21:00 Hằng ngày'),
           _settingItem(
             Icons.cloud_download_outlined,
             'Xuất dữ liệu hóa đơn',
             subtitle: 'Định dạng bảng tính Excel / CSV',
           ),
-          _settingItem(
-            Icons.category_outlined,
-            'Đổi hạn mức chi tiêu',
-          ),
-          _settingItem(
-            Icons.lock_outline,
-            'Bảo mật & Mã PIN sổ cái',
-            trailing: 'BẬT',
-          ),
-          _settingItem(
-            Icons.help_outline,
-            'Trợ giúp & Phản hồi',
-          ),
-          _settingItem(
-            Icons.logout,
-            'Đăng xuất',
-            isLogout: true,
-          ),
+          _settingItem(Icons.category_outlined, 'Đổi hạn mức chi tiêu'),
+          _settingItem(Icons.lock_outline, 'Đổi mật khẩu', onTap: _openSecurity),
+          _settingItem(Icons.help_outline, 'Trợ giúp & Phản hồi'),
+          _settingItem(Icons.logout, 'Đăng xuất', isLogout: true),
         ],
       ),
     );
@@ -476,6 +362,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     String? subtitle,
     String? trailing,
     bool isLogout = false,
+    VoidCallback? onTap,
   }) {
     return Column(
       children: [
@@ -483,20 +370,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onTap: _loggingOut
               ? null
               : isLogout
-                  ? _logout
-                  : _comingSoon,
+              ? _logout
+              : onTap ?? _comingSoon,
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 13,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
             child: Row(
               children: [
-                Icon(
-                  icon,
-                  size: 21,
-                  color: isLogout ? red : grey,
-                ),
+                Icon(icon, size: 21, color: isLogout ? red : grey),
                 const SizedBox(width: 13),
                 Expanded(
                   child: Column(
@@ -507,9 +387,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: TextStyle(
                           fontFamily: AppFonts.body,
                           fontSize: 13,
-                          fontWeight: isLogout
-                              ? FontWeight.bold
-                              : FontWeight.normal,
+                          fontWeight: isLogout ? FontWeight.bold : FontWeight.normal,
                           color: isLogout ? red : ink,
                         ),
                       ),
@@ -517,11 +395,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 4),
                         Text(
                           subtitle,
-                          style: const TextStyle(
-                            fontFamily: AppFonts.mono,
-                            fontSize: 9,
-                            color: grey,
-                          ),
+                          style: const TextStyle(fontFamily: AppFonts.mono, fontSize: 9, color: grey),
                         ),
                       ],
                     ],
@@ -532,30 +406,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Text(
                       trailing,
                       textAlign: TextAlign.end,
-                      style: TextStyle(
-                        fontFamily: AppFonts.mono,
-                        fontSize: 9,
-                        color: isLogout ? red : grey,
-                      ),
+                      style: TextStyle(fontFamily: AppFonts.mono, fontSize: 9, color: isLogout ? red : grey),
                     ),
                   ),
                 const SizedBox(width: 5),
-                Icon(
-                  Icons.chevron_right,
-                  size: 18,
-                  color: isLogout ? red : grey,
-                ),
+                Icon(Icons.chevron_right, size: 18, color: isLogout ? red : grey),
               ],
             ),
           ),
         ),
-        if (!isLogout)
-          const Divider(
-            height: 1,
-            color: line,
-            indent: 14,
-            endIndent: 14,
-          ),
+        if (!isLogout) const Divider(height: 1, color: line, indent: 14, endIndent: 14),
       ],
     );
   }
@@ -566,12 +426,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'ExpenseSnap · Hồ sơ cá nhân\n'
         'Lưu trữ cục bộ mã hóa an toàn tại thiết bị',
         textAlign: TextAlign.center,
-        style: TextStyle(
-          fontFamily: AppFonts.mono,
-          fontSize: 10,
-          height: 1.8,
-          color: grey,
-        ),
+        style: TextStyle(fontFamily: AppFonts.mono, fontSize: 10, height: 1.8, color: grey),
       ),
     );
   }
@@ -590,11 +445,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _navItem(Icons.receipt_long_outlined, 'Trang chủ', () {
               Navigator.of(context).pop();
             }),
-            _navItem(Icons.account_balance_wallet_outlined,
-                'Giao dịch', _comingSoon),
+            _navItem(Icons.account_balance_wallet_outlined, 'Giao dịch', _comingSoon),
             _cameraNav(),
-            _navItem(Icons.bar_chart_outlined,
-                'Thống kê', _comingSoon),
+            _navItem(Icons.bar_chart_outlined, 'Thống kê', _comingSoon),
             _navItem(Icons.person, 'Cá nhân', () {}, selected: true),
           ],
         ),
@@ -602,23 +455,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _navItem(
-    IconData icon,
-    String label,
-    VoidCallback onTap, {
-    bool selected = false,
-  }) {
+  Widget _navItem(IconData icon, String label, VoidCallback onTap, {bool selected = false}) {
     return Expanded(
       child: InkWell(
         onTap: onTap,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              color: selected ? red : grey,
-              size: 22,
-            ),
+            Icon(icon, color: selected ? red : grey, size: 22),
             const SizedBox(height: 4),
             Text(
               label,
@@ -627,9 +471,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 fontFamily: AppFonts.body,
                 fontSize: 9,
                 color: selected ? red : grey,
-                fontWeight: selected
-                    ? FontWeight.bold
-                    : FontWeight.normal,
+                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
           ],
@@ -648,24 +490,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Container(
               width: 43,
               height: 43,
-              decoration: const BoxDecoration(
-                color: red,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.camera_alt_outlined,
-                color: Colors.white,
-              ),
+              decoration: const BoxDecoration(color: red, shape: BoxShape.circle),
+              child: const Icon(Icons.camera_alt_outlined, color: Colors.white),
             ),
             const SizedBox(height: 3),
             const Text(
               'Chụp hóa đơn',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: AppFonts.body,
-                fontSize: 9,
-                color: red,
-              ),
+              style: TextStyle(fontFamily: AppFonts.body, fontSize: 9, color: red),
             ),
           ],
         ),
