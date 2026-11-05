@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../services/api_exception.dart';
 import '../../services/login_service.dart';
 import '../../widgets/washi_tape.dart';
 import '../home/home_screen.dart';
@@ -85,6 +86,8 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       _message(message);
+    } on ApiException catch (e) {
+      if (mounted) _message(e.message);
     } catch (e) {
       if (mounted) _message('Có lỗi xảy ra: $e');
     } finally {
@@ -104,6 +107,8 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         _message(e.message ?? 'Đăng nhập Google thất bại');
       }
+    } on ApiException catch (e) {
+      if (mounted) _message(e.message);
     } catch (e) {
       if (mounted) _message('Không thể đăng nhập Google: $e');
     } finally {

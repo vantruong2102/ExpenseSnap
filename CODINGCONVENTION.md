@@ -29,7 +29,7 @@ Dự án gồm hai phần:
 
 - Tuân theo **PEP 8**. Thụt lề **4 dấu cách**, không dùng tab.
 - Độ dài dòng tối đa **120 ký tự**.
-- Dùng **dấu nháy đơn** `'...'` cho chuỗi (giống code Django hiện có trong `config/settings.py`).
+- Dùng **dấu nháy đơn** `'...'` cho chuỗi (giống code Django hiện có trong `soa_common/settings_base.py`).
 - Thứ tự import: thư viện chuẩn → thư viện bên thứ ba → module trong dự án, mỗi nhóm cách nhau một dòng trống.
 
 ```python
@@ -53,23 +53,45 @@ from transactions.models import Transaction
 | Trường model | `snake_case`, rõ nghĩa | `created_at`, `receipt_image_url` |
 | URL | chữ thường, gạch ngang, danh từ số nhiều | `/api/transactions/`, `/api/monthly-reports/` |
 
-### 2.3. Cấu trúc một Django app
+### 2.3. Kiến trúc SOA và cấu trúc một service
+
+Backend theo kiến trúc **SOA**: mỗi nghiệp vụ là một service Django chạy riêng, có database riêng. Chi tiết và cách áp dụng 8 nguyên tắc SOA xem tại [docs/ARCHITECTURE_SOA.md](docs/ARCHITECTURE_SOA.md).
 
 ```text
-transactions/
-├── migrations/
-├── __init__.py
-├── admin.py          # Đăng ký model với Django admin
-├── apps.py
-├── models.py         # Định nghĩa model
-├── serializers.py    # Serializer của DRF
-├── views.py          # ViewSet / APIView
-├── urls.py           # Router của app, được include vào config/urls.py
-└── tests.py          # Hoặc thư mục tests/ khi có nhiều test
+Backend/
+├── soa_common/               # Thư viện dùng chung: settings nền, registry client, /health/
+├── services/
+│   ├── gateway/              # :8000 – điểm vào duy nhất của Flutter
+│   ├── auth_service/         # :8001 – app accounts
+│   ├── receipt_service/      # :8002 – app receipts
+│   └── registry_service/     # :8010 – danh bạ service
+└── run_services.ps1          # Khởi động cả 4 service
 ```
 
-- Mọi app mới phải được khai báo trong `INSTALLED_APPS` ở `config/settings.py`.
-- URL của từng app khai báo trong `<app>/urls.py`, sau đó `include()` vào `config/urls.py` dưới tiền tố `api/`.
+Mỗi service có cấu trúc giống nhau:
+
+```text
+receipt_service/
+├── manage.py
+├── config/
+│   ├── settings.py   # import soa_common.settings_base rồi khai báo SERVICE_NAME, cổng, app, database
+│   ├── urls.py       # include URL của app + common_urlpatterns (/health/, /api/schema/, /api/docs/)
+│   └── wsgi.py
+└── receipts/         # Django app
+    ├── migrations/
+    ├── apps.py
+    ├── models.py
+    ├── serializers.py
+    ├── views.py
+    ├── urls.py
+    └── tests.py
+```
+
+- **Không import code giữa các service, không tạo khóa ngoại sang database của service khác.** Muốn dùng dữ liệu của service khác thì gọi API của nó (qua `soa_common.registry_client.discover()`), hoặc dùng thông tin có sẵn trong JWT (ví dụ `user_id`).
+- Code dùng chung cho nhiều service đặt trong `soa_common/`.
+- App mới khai báo trong `INSTALLED_APPS` ở `services/<service>/config/settings.py` của service sở hữu nó.
+- Thêm tiền tố URL mới thì phải khai báo thêm trong `GATEWAY_ROUTES` ở `services/gateway/config/settings.py`; nếu không, Flutter sẽ không gọi tới được.
+- Service mới: sao chép cấu trúc của một service có sẵn, đặt `SERVICE_NAME` dạng `<tên>-service` và cổng riêng, rồi thêm vào `run_services.ps1`.
 - Model nên có `__str__()` và `class Meta` (ít nhất `ordering`) khi cần.
 - API dùng **Django REST Framework**, xác thực bằng **Simple JWT**; ưu tiên `ModelViewSet` + `DefaultRouter` cho CRUD.
 
@@ -235,13 +257,15 @@ Nếu có conflict: sửa conflict, kiểm tra lại code chạy được, rồi
 
 ### Bước 3 – Kiểm tra trước khi commit
 
-**Backend** (trong thư mục `Backend/`, đã kích hoạt `.venv`):
+**Backend** (đã kích hoạt `.venv`): chạy trong thư mục **từng service đã sửa** (`Backend/services/<service>/`):
 
 ```bash
 python manage.py check
-python manage.py makemigrations --check --dry-run   # đảm bảo không quên migration
+python manage.py makemigrations --check --dry-run   # đảm bảo không quên migration (gateway không có database)
 python manage.py test
 ```
+
+Nếu sửa `soa_common/` thì phải chạy test của **cả 4 service**.
 
 **Frontend** (trong thư mục `Frontend/`):
 
@@ -286,7 +310,7 @@ git pull origin develop
 ```
 
 - Chạy lại đầy đủ các lệnh kiểm tra ở **Bước 3** cho cả Backend và Frontend.
-- Chạy backend (`python manage.py migrate`, `python manage.py runserver`) và frontend (`flutter run`), kiểm tra thủ công các chức năng chính hoạt động cùng nhau.
+- Chạy backend (`.\run_services.ps1 -Migrate` trong thư mục `Backend/`) và frontend (`flutter run`), kiểm tra thủ công các chức năng chính hoạt động cùng nhau.
 - Nếu phát hiện lỗi: thành viên phụ trách sửa trên nhánh `dev_<tên>` của mình rồi tạo PR mới vào `develop`. **Không sửa trực tiếp trên `develop`.**
 
 ### Bước 7 – Tạo Pull Request từ `develop` vào `main`

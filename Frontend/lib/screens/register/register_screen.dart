@@ -51,43 +51,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSubmitting = true);
-    UserCredential? firebaseCredential;
     try {
-      firebaseCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-      await firebaseCredential.user?.updateDisplayName(_fullNameController.text.trim());
-      await _authService.register(
+      // Tạo tài khoản Firebase rồi lấy JWT backend; AuthService tự xóa tài khoản Firebase nếu backend lỗi
+      await _authService.registerWithEmail(
         fullName: _fullNameController.text,
         email: _emailController.text,
         password: _passwordController.text,
-        passwordConfirm: _confirmController.text,
       );
       if (!mounted) return;
       _showMessage('Đăng ký thành công!');
       Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const ReceiptCaptureScreen()));
     } on ApiException catch (error) {
-      if (firebaseCredential?.user != null) {
-        try {
-          await firebaseCredential!.user!.delete();
-          await FirebaseAuth.instance.signOut();
-        } on FirebaseAuthException {
-          // Keep the original API error visible if compensating cleanup fails.
-        }
-      }
       if (!mounted) return;
       setState(() => _serverErrors = error.fieldErrors);
       _showMessage(error.message);
     } on FirebaseAuthException catch (error) {
-      if (firebaseCredential?.user != null) {
-        try {
-          await firebaseCredential!.user!.delete();
-          await FirebaseAuth.instance.signOut();
-        } on FirebaseAuthException {
-          // Preserve the original Firebase error shown below.
-        }
-      }
       if (!mounted) return;
       final message = switch (error.code) {
         'email-already-in-use' => 'Email này đã có tài khoản.',
@@ -354,8 +332,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget _buildLoginLink() {
     return InkWell(
       onTap: () {
-       Navigator.of(context).pop();
-    },
+        Navigator.of(context).pop();
+      },
       child: const Padding(
         padding: EdgeInsets.symmetric(vertical: 8),
         child: Row(
