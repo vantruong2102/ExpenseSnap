@@ -29,17 +29,17 @@ def _email_key(email):
 
 class PasswordResetRequestThrottle(AnonRateThrottle):
     scope = 'password_reset_request'
-    rate = '3/hour'
+    rate = '5/minute'
 
 
 class PasswordResetVerifyThrottle(AnonRateThrottle):
     scope = 'password_reset_verify'
-    rate = '10/hour'
+    rate = '20/minute'
 
 
 class PasswordResetCompleteThrottle(AnonRateThrottle):
     scope = 'password_reset_complete'
-    rate = '5/hour'
+    rate = '10/minute'
 
 
 class PasswordResetRequestView(generics.GenericAPIView):
