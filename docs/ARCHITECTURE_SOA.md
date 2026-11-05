@@ -87,7 +87,7 @@ copy .env.example .env      # điền các khóa, EMAIL_* và GOOGLE_APPLICATION
 .\run_services.ps1 -Migrate # lần đầu; các lần sau chỉ cần .\run_services.ps1
 ```
 
-Script mở 4 cửa sổ, registry chạy trước. App chạy bằng `Frontendun_app.ps1`: với Android, script tự `adb reverse tcp:8000 tcp:8000` để app luôn gọi gateway ở `http://127.0.0.1:8000`.
+Script mở 4 cửa sổ, registry chạy trước. App chạy bằng `Frontend/run_app.ps1`: với Android, script tự `adb reverse tcp:8000 tcp:8000` để app luôn gọi gateway ở `http://127.0.0.1:8000`.
 
 | Kiểm tra | URL |
 |---------|-----|
