@@ -1,1 +1,31 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"expensesnap-bae4d","appId":"1:25253645798:android:2c0010d48ea1f3dcb1da27","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"expensesnap-bae4d","configurations":{"android":"1:25253645798:android:2c0010d48ea1f3dcb1da27","ios":"1:25253645798:ios:0faaad05c59993a9b1da27","macos":"1:25253645798:ios:0faaad05c59993a9b1da27","web":"1:25253645798:web:f00bd46aeb53df66b1da27","windows":"1:25253645798:web:3afefab8afcd9538b1da27"}}}}}}
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "expensesnap-bae4d",
+          "appId": "1:25253645798:android:2c0010d48ea1f3dcb1da27",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "expensesnap-bae4d",
+          "configurations": {
+            "android": "1:25253645798:android:2c0010d48ea1f3dcb1da27",
+            "ios": "1:25253645798:ios:0faaad05c59993a9b1da27",
+            "macos": "1:25253645798:ios:0faaad05c59993a9b1da27",
+            "web": "1:25253645798:web:f00bd46aeb53df66b1da27",
+            "windows": "1:25253645798:web:3afefab8afcd9538b1da27"
+          }
+        }
+      }
+    }
+  }
+}
