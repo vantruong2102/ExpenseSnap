@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../services/login_service.dart';
 import '../../widgets/washi_tape.dart';
 import '../home/home_screen.dart';
+import 'password_reset_screen.dart';
 import '../register/register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -502,7 +503,9 @@ class _LoginScreenState extends State<LoginScreen> {
         const Spacer(),
         TextButton(
           onPressed: () {
-            _message('Chức năng quên mật khẩu sẽ bổ sung sau.');
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const PasswordResetScreen()),
+            );
           },
           style: TextButton.styleFrom(
             padding: EdgeInsets.zero,
