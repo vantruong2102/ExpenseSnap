@@ -31,7 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
     'Cá nhân',
   ];
 
-  // Mở chức năng chụp hóa đơn của thành viên nhóm
+  // Mở chức năng chụp hóa đơn 
   void _openReceiptCapture() {
     Navigator.of(context).push(
       MaterialPageRoute(
