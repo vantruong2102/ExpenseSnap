@@ -62,7 +62,28 @@ class FirebaseLoginSerializer(serializers.Serializer):
                     # Mật khẩu chỉ nằm ở Firebase, không lưu bản thứ hai trong database
                     user.set_unusable_password()
                     user.save()
-                FirebaseAccount.objects.create(user=user, uid=uid)
+                    FirebaseAccount.objects.create(user=user, uid=uid)
+                else:
+                    # Firebase may issue a new UID after an account is deleted and
+                    # recreated with the same verified email. Rebind only when the
+                    # previous Firebase identity no longer exists.
+                    account = FirebaseAccount.objects.filter(user=user).first()
+                    if account is None:
+                        FirebaseAccount.objects.create(user=user, uid=uid)
+                    elif account.uid != uid:
+                        if not claims.get('email_verified', False):
+                            raise serializers.ValidationError(
+                                {'email': 'Verify the email before restoring this account link.'}
+                            )
+                        try:
+                            firebase_auth.get_user(account.uid)
+                        except firebase_auth.UserNotFoundError:
+                            account.uid = uid
+                            account.save(update_fields=['uid'])
+                        else:
+                            raise serializers.ValidationError(
+                                {'email': 'This email is linked to another Firebase account.'}
+                            )
 
             if full_name and not user.first_name:
                 user.first_name = full_name

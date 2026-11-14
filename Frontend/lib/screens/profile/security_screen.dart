@@ -30,10 +30,10 @@ class _SecurityScreenState extends State<SecurityScreen> {
 
   User? get _user => FirebaseAuth.instance.currentUser;
 
-  bool get _hasPasswordProvider => _user?.providerData.any(
-        (provider) => provider.providerId == EmailAuthProvider.PROVIDER_ID,
-      ) ??
-      false;
+  bool get _hasPasswordProvider {
+    final providers = _user?.providerData.map((provider) => provider.providerId).toSet() ?? <String>{};
+    return providers.contains(EmailAuthProvider.PROVIDER_ID) && !providers.contains('google.com');
+  }
 
   @override
   void dispose() {
@@ -44,6 +44,10 @@ class _SecurityScreenState extends State<SecurityScreen> {
   }
 
   Future<void> _changePassword() async {
+    if (!_hasPasswordProvider) {
+      _showMessage('Tài khoản Google không có mật khẩu ExpenseSnap để đổi.');
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
     final user = _user;
     final email = user?.email;
@@ -276,31 +280,12 @@ class _SecurityScreenState extends State<SecurityScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Tài khoản $email chưa có mật khẩu ExpenseSnap. Bạn có thể xác minh email bằng mã OTP để thiết lập mật khẩu.',
+            'Tài khoản $email đăng nhập bằng Google. Mật khẩu được quản lý bởi Google; chỉ tài khoản đăng ký bằng email và mật khẩu mới đổi mật khẩu trong ExpenseSnap.',
             style: const TextStyle(
               fontFamily: AppFonts.body,
               fontSize: 13,
               height: 1.5,
               color: _grey,
-            ),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: _resetByEmail,
-              icon: const Icon(Icons.mark_email_read_outlined, size: 18),
-              label: const Text('Nhận mã OTP qua email'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _red,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                textStyle: const TextStyle(
-                  fontFamily: AppFonts.body,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
             ),
           ),
         ],

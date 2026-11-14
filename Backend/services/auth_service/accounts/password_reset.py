@@ -27,6 +27,11 @@ def _email_key(email):
     return hashlib.sha256(email.strip().lower().encode()).hexdigest()
 
 
+def _supports_email_password(user):
+    providers = {provider.provider_id for provider in user.provider_data}
+    return 'password' in providers and 'google.com' not in providers
+
+
 class PasswordResetRequestThrottle(AnonRateThrottle):
     scope = 'password_reset_request'
     rate = '5/minute'
@@ -52,17 +57,24 @@ class PasswordResetRequestView(generics.GenericAPIView):
             raise ValidationError({'email': 'Vui lòng nhập email hợp lệ.'})
 
         # Keep the response identical for known and unknown Firebase accounts.
-        response_message = 'Nếu email có tài khoản ExpenseSnap, mã xác minh sẽ được gửi đến hộp thư.'
+        response_message = 'Nếu email thuộc tài khoản đăng ký bằng email và mật khẩu, mã xác minh sẽ được gửi đến hộp thư.'
         key = _email_key(email)
         try:
             get_firebase_app()
-            firebase_auth.get_user_by_email(email)
+            user = firebase_auth.get_user_by_email(email)
         except firebase_auth.UserNotFoundError:
             return Response({'message': response_message}, status=status.HTTP_200_OK)
         except Exception:
             return Response(
                 {'message': 'Dịch vụ đặt lại mật khẩu chưa được cấu hình Firebase Admin.'},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        # Google identities (including linked Google/password identities) cannot
+        # use the app's email/password reset flow.
+        if not _supports_email_password(user):
+            raise ValidationError(
+                {'email': 'Tài khoản này đăng nhập bằng Google. Hãy chọn “Tiếp tục với Google”; OTP chỉ dùng cho tài khoản email và mật khẩu.'}
             )
 
         otp = f'{secrets.randbelow(1_000_000):06d}'
@@ -93,6 +105,15 @@ class PasswordResetVerifyView(generics.GenericAPIView):
     def post(self, request):
         email = str(request.data.get('email', '')).strip().lower()
         otp = str(request.data.get('otp', '')).strip()
+        try:
+            user = firebase_auth.get_user_by_email(email)
+        except firebase_auth.UserNotFoundError:
+            user = None
+        except Exception:
+            user = None
+        if user is None or not _supports_email_password(user):
+            raise ValidationError({'otp': 'Mã không đúng hoặc đã hết hạn. Hãy yêu cầu mã mới.'})
+
         key = _email_key(email)
         cache_key = f'password-reset-otp:{key}'
         expected = cache.get(cache_key)
@@ -136,8 +157,12 @@ class PasswordResetCompleteView(generics.GenericAPIView):
         try:
             get_firebase_app()
             user = firebase_auth.get_user_by_email(email)
+            if not _supports_email_password(user):
+                raise ValidationError({'email': 'Tài khoản Google không thể đặt lại mật khẩu ExpenseSnap.'})
             firebase_auth.update_user(user.uid, password=password)
             firebase_auth.revoke_refresh_tokens(user.uid)
+        except ValidationError:
+            raise
         except firebase_admin.exceptions.FirebaseError:
             raise ValidationError({'email': 'Không thể cập nhật tài khoản Firebase.'})
         except Exception:
