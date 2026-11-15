@@ -58,10 +58,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         email: _emailController.text,
         password: _passwordController.text,
       );
-      if (!mounted) return;
+      // Firebase tự đăng nhập sau khi tạo tài khoản -> đăng xuất để người dùng đăng nhập lại ở màn Đăng nhập
       await _authService.signOut();
       if (!mounted) return;
-      _showMessage('Đăng ký thành công!');
+      _showMessage('Đăng ký thành công! Vui lòng đăng nhập.');
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
         (route) => false,
