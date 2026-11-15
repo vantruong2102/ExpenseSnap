@@ -6,6 +6,7 @@ import '../../services/login_service.dart';
 import 'edit_personal_info_screen.dart';
 import 'security_screen.dart';
 import '../login/login_screen.dart';
+import '../receipt_capture/receipt_capture_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -483,7 +484,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _cameraNav() {
     return Expanded(
       child: InkWell(
-        onTap: _comingSoon,
+        onTap: () { Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReceiptCaptureScreen())); },
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
