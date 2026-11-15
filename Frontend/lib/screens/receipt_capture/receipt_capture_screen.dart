@@ -9,6 +9,7 @@ import '../../services/receipt_service.dart';
 import '../../widgets/dashed_line.dart';
 import '../../widgets/stamp_tag.dart';
 import '../../widgets/washi_tape.dart';
+import '../profile/profile_screen.dart';
 import '../receipt_preview/receipt_preview_screen.dart';
 import 'widgets/scan_frame_overlay.dart';
 
@@ -276,7 +277,16 @@ class _ReceiptCaptureScreenState extends State<ReceiptCaptureScreen> with Widget
               ],
             ),
           ),
-          const _CircleButton(tooltip: 'Tài khoản cá nhân', icon: Icons.account_circle_outlined, filled: true),
+          _CircleButton(
+            tooltip: 'Tài khoản cá nhân',
+            icon: Icons.account_circle_outlined,
+            filled: true,
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
+            },
+          ),
         ],
       ),
     );

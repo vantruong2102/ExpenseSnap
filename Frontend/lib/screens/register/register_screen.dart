@@ -9,7 +9,7 @@ import '../../widgets/dashed_line.dart';
 import '../../widgets/labeled_field.dart';
 import '../../widgets/stamp_tag.dart';
 import '../../widgets/washi_tape.dart';
-import '../receipt_capture/receipt_capture_screen.dart';
+import '../login/login_screen.dart';
 
 /// Figma node 9:475 – "Đăng ký".
 class RegisterScreen extends StatefulWidget {
@@ -59,8 +59,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passwordController.text,
       );
       if (!mounted) return;
+      await _authService.signOut();
+      if (!mounted) return;
       _showMessage('Đăng ký thành công!');
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const ReceiptCaptureScreen()));
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
     } on ApiException catch (error) {
       if (!mounted) return;
       setState(() => _serverErrors = error.fieldErrors);

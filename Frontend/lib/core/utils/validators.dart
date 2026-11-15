@@ -17,6 +17,8 @@ class Validators {
 
   static String? password(String? value) {
     if (value == null || value.isEmpty) return 'Vui lòng nhập mật khẩu';
+    if (value.trim().isEmpty) return 'Mật khẩu không được chỉ chứa khoảng trắng';
+    if (RegExp(r'\s').hasMatch(value)) return 'Mật khẩu không được chứa khoảng trắng';
     if (value.length < 8) return 'Mật khẩu phải có ít nhất 8 ký tự';
     if (RegExp(r'^\d+$').hasMatch(value)) return 'Mật khẩu không được chỉ gồm số';
     return null;

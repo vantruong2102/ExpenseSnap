@@ -95,6 +95,22 @@ class AuthService {
     return user;
   }
 
+  /// Khôi phục phiên backend dựa trên người dùng Firebase đã được lưu trên thiết bị.
+  Future<bool> restoreSession() async {
+    if (_auth.currentUser == null) {
+      _session.clear();
+      return false;
+    }
+
+    try {
+      await signInToBackend(forceRefresh: true);
+      return true;
+    } on ApiException {
+      await signOut();
+      return false;
+    }
+  }
+
   Future<void> signOut() async {
     _session.clear();
     await _auth.signOut();
