@@ -110,7 +110,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
       };
 
   String get _subtitle => switch (_step) {
-        0 => 'Nhập email đã đăng ký để nhận mã xác minh đặt lại mật khẩu.',
+        0 => 'Nhập email của tài khoản đăng ký bằng email và mật khẩu. Tài khoản Google không dùng chức năng đặt lại mật khẩu này.',
         1 => 'Nhập mã 6 số đã gửi tới email của bạn.',
         _ => 'Tạo mật khẩu mới để tiếp tục sử dụng sổ hóa đơn.',
       };
