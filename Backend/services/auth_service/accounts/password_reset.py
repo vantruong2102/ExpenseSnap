@@ -57,7 +57,7 @@ class PasswordResetRequestView(generics.GenericAPIView):
             get_firebase_app()
             user = firebase_auth.get_user_by_email(email)
         except firebase_auth.UserNotFoundError:
-            return Response({'message': response_message}, status=status.HTTP_200_OK)
+            raise ValidationError({'email': 'Email ch\u01b0a \u0111\u0103ng k\u00fd.'})
         except Exception:
             return Response(
                 {'message': 'Dịch vụ đặt lại mật khẩu chưa được cấu hình Firebase Admin.'},
