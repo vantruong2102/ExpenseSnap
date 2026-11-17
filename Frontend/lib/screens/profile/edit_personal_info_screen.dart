@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/theme/app_theme.dart';
@@ -59,7 +60,7 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
       final profile = await _profileService.load();
       if (!mounted) return;
       _nameController.text = profile.fullName;
-      _phoneController.text = profile.phoneNumber;
+      _phoneController.text = _normalizeVietnamPhone(profile.phoneNumber);
       _birthDate = profile.dateOfBirth;
       _birthDateController.text = _formatDate(profile.dateOfBirth);
       _photoUrl = profile.photoUrl;
@@ -70,6 +71,15 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  String _normalizeVietnamPhone(String phone) {
+    final digits = phone.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('84')) {
+      final nationalNumber = digits.substring(2);
+      return nationalNumber.startsWith('0') ? nationalNumber : '0$nationalNumber';
+    }
+    return digits;
   }
 
   String _formatDate(String? isoDate) {
@@ -304,20 +314,21 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
-                  maxLength: 20,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  maxLength: 10,
                   style: const TextStyle(
                     fontFamily: AppFonts.body,
                     fontSize: 14,
                     color: _ink,
                   ),
-                  decoration: _decoration('Ví dụ: 0912 345 678', Icons.phone_outlined),
+                  decoration: _decoration('Ví dụ: 0912 345 678', Icons.phone_outlined).copyWith(
+                    prefixText: '+84 ',
+                    prefixStyle: const TextStyle(fontFamily: AppFonts.body, fontSize: 14, color: _ink),
+                  ),
                   validator: (value) {
                     final phone = value?.trim() ?? '';
                     if (phone.isEmpty) return null;
-                    final digits = phone.replaceAll(RegExp(r'\D'), '');
-                    if (!RegExp(r'^\+?[0-9\s().-]{7,20}$').hasMatch(phone) ||
-                        digits.length < 7 ||
-                        digits.length > 15) {
+                    if (!RegExp(r'^0[0-9]{9}$').hasMatch(phone)) {
                       return 'Số điện thoại chưa đúng định dạng.';
                     }
                     return null;
