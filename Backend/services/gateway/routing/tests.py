@@ -38,6 +38,60 @@ class GatewayTests(SimpleTestCase):
         self.assertEqual((method, url), ('POST', 'http://auth.internal:8001/api/auth/register/'))
         self.assertEqual(request_mock.call_args.kwargs['data'], b'{"email":"a@b.c"}')
 
+    def test_routes_password_reset_request_to_auth_service(self, request_mock, _discover):
+        request_mock.return_value = fake_response(200, b'{"message":"accepted"}')
+
+        response = self.client.post(
+            '/api/auth/password-reset/request/',
+            {'email': 'a@b.c'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        method, url = request_mock.call_args.args
+        self.assertEqual(
+            (method, url),
+            ('POST', 'http://auth.internal:8001/api/auth/password-reset/request/'),
+        )
+        self.assertEqual(request_mock.call_args.kwargs['data'], b'{"email":"a@b.c"}')
+
+    def test_routes_password_reset_verify_to_auth_service(self, request_mock, _discover):
+        request_mock.return_value = fake_response(200, b'{"reset_token":"token"}')
+
+        response = self.client.post(
+            '/api/auth/password-reset/verify/',
+            {'email': 'a@b.c', 'otp': '123456'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        method, url = request_mock.call_args.args
+        self.assertEqual(
+            (method, url),
+            ('POST', 'http://auth.internal:8001/api/auth/password-reset/verify/'),
+        )
+        self.assertEqual(request_mock.call_args.kwargs['data'], b'{"email":"a@b.c","otp":"123456"}')
+
+    def test_routes_password_reset_complete_and_passes_validation_error(self, request_mock, _discover):
+        request_mock.return_value = fake_response(
+            400,
+            b'{"password":["Invalid password"]}',
+        )
+
+        response = self.client.post(
+            '/api/auth/password-reset/complete/',
+            {'reset_token': 'token', 'password': 'NewPass@2026'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json(), {'password': ['Invalid password']})
+        method, url = request_mock.call_args.args
+        self.assertEqual(
+            (method, url),
+            ('POST', 'http://auth.internal:8001/api/auth/password-reset/complete/'),
+        )
+
     def test_routes_receipts_with_token_query_and_forwarded_host(self, request_mock, _discover):
         request_mock.return_value = fake_response(200, b'[]')
 

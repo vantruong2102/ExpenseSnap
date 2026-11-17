@@ -32,11 +32,6 @@ def _supports_email_password(user):
     return 'password' in providers and 'google.com' not in providers
 
 
-class PasswordResetRequestThrottle(AnonRateThrottle):
-    scope = 'password_reset_request'
-    rate = '5/minute'
-
-
 class PasswordResetVerifyThrottle(AnonRateThrottle):
     scope = 'password_reset_verify'
     rate = '20/minute'
@@ -49,7 +44,6 @@ class PasswordResetCompleteThrottle(AnonRateThrottle):
 
 class PasswordResetRequestView(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
-    throttle_classes = [PasswordResetRequestThrottle]
 
     def post(self, request):
         email = str(request.data.get('email', '')).strip().lower()
@@ -63,7 +57,7 @@ class PasswordResetRequestView(generics.GenericAPIView):
             get_firebase_app()
             user = firebase_auth.get_user_by_email(email)
         except firebase_auth.UserNotFoundError:
-            return Response({'message': response_message}, status=status.HTTP_200_OK)
+            raise ValidationError({'email': 'Email ch\u01b0a \u0111\u0103ng k\u00fd.'})
         except Exception:
             return Response(
                 {'message': 'Dịch vụ đặt lại mật khẩu chưa được cấu hình Firebase Admin.'},
@@ -151,6 +145,8 @@ class PasswordResetCompleteView(generics.GenericAPIView):
         cache_key = f'password-reset-token:{nonce_hash}'
         if not email or not cache.get(cache_key):
             raise ValidationError({'reset_token': 'Mã xác minh đã được sử dụng hoặc đã hết hạn.'})
+        if any(character.isspace() for character in password):
+            raise ValidationError({'password': 'M?t kh?u kh?ng ??ng ??nh d?ng, vui l?ng nh?p m?t kh?u kh?c.'})
         if len(password) < 8 or password.isdigit():
             raise ValidationError({'password': 'Mật khẩu cần có ít nhất 8 ký tự và không được chỉ gồm số.'})
 

@@ -201,6 +201,9 @@ class _SecurityScreenState extends State<SecurityScreen> {
             onToggle: () => setState(() => _hideNew = !_hideNew),
             validator: (value) {
               final password = value ?? '';
+              if (RegExp(r'\s').hasMatch(password)) {
+                return 'M?t kh?u kh?ng ??ng ??nh d?ng, vui l?ng nh?p m?t kh?u kh?c.';
+              }
               if (password.length < 8 || password.trim().isEmpty) {
                 return 'Mật khẩu cần có ít nhất 8 ký tự.';
               }
