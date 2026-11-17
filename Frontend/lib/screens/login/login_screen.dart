@@ -110,7 +110,11 @@ class _LoginScreenState extends State<LoginScreen> {
     } on ApiException catch (e) {
       if (mounted) _message(e.message);
     } catch (e) {
-      if (mounted) _message('Không thể đăng nhập Google: $e');
+      if (!mounted) return;
+
+      if (!e.toString().contains('canceled')) {
+        _message('Không thể đăng nhập Google. Vui lòng thử lại.');
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
