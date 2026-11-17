@@ -5,6 +5,8 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from firebase_admin import auth as firebase_auth
 from rest_framework import serializers
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 
 from accounts.models import FirebaseAccount
 from soa_common.firebase import get_firebase_app
@@ -68,3 +70,11 @@ class FirebaseLoginSerializer(serializers.Serializer):
                 user.first_name = full_name
                 user.save(update_fields=['first_name'])
         return user
+
+
+class SafeTokenRefreshSerializer(TokenRefreshSerializer):
+    def validate(self, attrs):
+        try:
+            return super().validate(attrs)
+        except User.DoesNotExist as error:
+            raise AuthenticationFailed('Tài khoản không còn tồn tại.') from error
