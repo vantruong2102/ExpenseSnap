@@ -58,10 +58,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
 
     setState(() => _saving = true);
     try {
-      final credential = EmailAuthProvider.credential(
-        email: email,
-        password: _currentPassword.text,
-      );
+      final credential = EmailAuthProvider.credential(email: email, password: _currentPassword.text);
       await user.reauthenticateWithCredential(credential);
       await user.updatePassword(_newPassword.text);
       if (!mounted) return;
@@ -88,11 +85,8 @@ class _SecurityScreenState extends State<SecurityScreen> {
 
   Future<void> _resetByEmail() async {
     final email = _user?.email;
-    final passwordChanged = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => PasswordResetScreen(initialEmail: email),
-      ),
-    );
+    final passwordChanged = await Navigator.of(context)
+        .push<bool>(MaterialPageRoute(builder: (_) => PasswordResetScreen(initialEmail: email)));
     if (passwordChanged == true && mounted) {
       Navigator.of(context).pop(true);
     }
@@ -112,11 +106,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
         elevation: 0,
         title: const Text(
           'Bảo mật tài khoản',
-          style: TextStyle(
-            fontFamily: AppFonts.body,
-            fontSize: 17,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontFamily: AppFonts.body, fontSize: 17, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),
@@ -137,22 +127,12 @@ class _SecurityScreenState extends State<SecurityScreen> {
         children: [
           const Text(
             'ĐỔI MẬT KHẨU',
-            style: TextStyle(
-              fontFamily: AppFonts.mono,
-              fontSize: 10,
-              letterSpacing: 1,
-              color: _grey,
-            ),
+            style: TextStyle(fontFamily: AppFonts.mono, fontSize: 10, letterSpacing: 1, color: _grey),
           ),
           const SizedBox(height: 6),
           const Text(
             'Bảo vệ tài khoản của bạn',
-            style: TextStyle(
-              fontFamily: AppFonts.body,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: _ink,
-            ),
+            style: TextStyle(fontFamily: AppFonts.body, fontSize: 22, fontWeight: FontWeight.bold, color: _ink),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -167,9 +147,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
             hint: 'Nhập mật khẩu hiện tại',
             hidden: _hideCurrent,
             onToggle: () => setState(() => _hideCurrent = !_hideCurrent),
-            validator: (value) => (value == null || value.isEmpty)
-                ? 'Vui lòng nhập mật khẩu hiện tại.'
-                : null,
+            validator: (value) => (value == null || value.isEmpty) ? 'Vui lòng nhập mật khẩu hiện tại.' : null,
           ),
           Align(
             alignment: Alignment.centerRight,
@@ -202,7 +180,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
             validator: (value) {
               final password = value ?? '';
               if (RegExp(r'\s').hasMatch(password)) {
-                return 'M?t kh?u kh?ng ??ng ??nh d?ng, vui l?ng nh?p m?t kh?u kh?c.';
+                return 'Mật khẩu không đúng định dạng.';
               }
               if (password.length < 8 || password.trim().isEmpty) {
                 return 'Mật khẩu cần có ít nhất 8 ký tự.';
@@ -224,9 +202,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
             hint: 'Nhập lại mật khẩu mới',
             hidden: _hideConfirm,
             onToggle: () => setState(() => _hideConfirm = !_hideConfirm),
-            validator: (value) => value != _newPassword.text
-                ? 'Mật khẩu xác nhận chưa khớp.'
-                : null,
+            validator: (value) => value != _newPassword.text ? 'Mật khẩu xác nhận chưa khớp.' : null,
           ),
           const SizedBox(height: 28),
           SizedBox(
@@ -246,10 +222,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                 backgroundColor: _red,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                textStyle: const TextStyle(
-                  fontFamily: AppFonts.body,
-                  fontWeight: FontWeight.bold,
-                ),
+                textStyle: const TextStyle(fontFamily: AppFonts.body, fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -274,22 +247,12 @@ class _SecurityScreenState extends State<SecurityScreen> {
           const SizedBox(height: 8),
           const Text(
             'Tài khoản đăng nhập bằng Google',
-            style: TextStyle(
-              fontFamily: AppFonts.body,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: _ink,
-            ),
+            style: TextStyle(fontFamily: AppFonts.body, fontSize: 18, fontWeight: FontWeight.bold, color: _ink),
           ),
           const SizedBox(height: 8),
           Text(
             'Tài khoản $email đăng nhập bằng Google. Mật khẩu được quản lý bởi Google; chỉ tài khoản đăng ký bằng email và mật khẩu mới đổi mật khẩu trong ExpenseSnap.',
-            style: const TextStyle(
-              fontFamily: AppFonts.body,
-              fontSize: 13,
-              height: 1.5,
-              color: _grey,
-            ),
+            style: const TextStyle(fontFamily: AppFonts.body, fontSize: 13, height: 1.5, color: _grey),
           ),
         ],
       ),
@@ -297,14 +260,9 @@ class _SecurityScreenState extends State<SecurityScreen> {
   }
 
   Widget _label(String text) => Text(
-        text,
-        style: const TextStyle(
-          fontFamily: AppFonts.mono,
-          fontSize: 9,
-          letterSpacing: 0.8,
-          color: _grey,
-        ),
-      );
+    text,
+    style: const TextStyle(fontFamily: AppFonts.mono, fontSize: 9, letterSpacing: 0.8, color: _grey),
+  );
 
   Widget _passwordField({
     required TextEditingController controller,
@@ -312,39 +270,38 @@ class _SecurityScreenState extends State<SecurityScreen> {
     required bool hidden,
     required VoidCallback onToggle,
     required String? Function(String?) validator,
-  }) =>
-      TextFormField(
-        controller: controller,
-        obscureText: hidden,
-        validator: validator,
-        style: const TextStyle(fontFamily: AppFonts.body, fontSize: 14, color: _ink),
-        decoration: InputDecoration(
-          hintText: hint,
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 14),
-          hintStyle: const TextStyle(fontFamily: AppFonts.body, fontSize: 13, color: _grey),
-          prefixIcon: const Icon(Icons.lock_outline, color: _grey, size: 19),
-          suffixIcon: IconButton(
-            onPressed: onToggle,
-            icon: Icon(hidden ? Icons.visibility_off_outlined : Icons.visibility_outlined),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(5),
-            borderSide: const BorderSide(color: _line),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(5),
-            borderSide: const BorderSide(color: _red, width: 1.4),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(5),
-            borderSide: const BorderSide(color: _red),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(5),
-            borderSide: const BorderSide(color: _red, width: 1.4),
-          ),
-        ),
-      );
+  }) => TextFormField(
+    controller: controller,
+    obscureText: hidden,
+    validator: validator,
+    style: const TextStyle(fontFamily: AppFonts.body, fontSize: 14, color: _ink),
+    decoration: InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 14),
+      hintStyle: const TextStyle(fontFamily: AppFonts.body, fontSize: 13, color: _grey),
+      prefixIcon: const Icon(Icons.lock_outline, color: _grey, size: 19),
+      suffixIcon: IconButton(
+        onPressed: onToggle,
+        icon: Icon(hidden ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(5),
+        borderSide: const BorderSide(color: _line),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(5),
+        borderSide: const BorderSide(color: _red, width: 1.4),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(5),
+        borderSide: const BorderSide(color: _red),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(5),
+        borderSide: const BorderSide(color: _red, width: 1.4),
+      ),
+    ),
+  );
 }
