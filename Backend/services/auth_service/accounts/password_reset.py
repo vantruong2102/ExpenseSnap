@@ -32,11 +32,6 @@ def _supports_email_password(user):
     return 'password' in providers and 'google.com' not in providers
 
 
-class PasswordResetRequestThrottle(AnonRateThrottle):
-    scope = 'password_reset_request'
-    rate = '5/minute'
-
-
 class PasswordResetVerifyThrottle(AnonRateThrottle):
     scope = 'password_reset_verify'
     rate = '20/minute'
@@ -49,7 +44,6 @@ class PasswordResetCompleteThrottle(AnonRateThrottle):
 
 class PasswordResetRequestView(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
-    throttle_classes = [PasswordResetRequestThrottle]
 
     def post(self, request):
         email = str(request.data.get('email', '')).strip().lower()
