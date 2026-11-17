@@ -151,19 +151,29 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
     );
   }
 
+  DateTime _yearsAgo(DateTime date, int years) {
+    final year = date.year - years;
+    final lastDayOfMonth = DateTime(year, date.month + 1, 0).day;
+    final day = date.day > lastDayOfMonth ? lastDayOfMonth : date.day;
+    return DateTime(year, date.month, day);
+  }
+
   Future<void> _selectBirthDate() async {
     final now = DateTime.now();
-    final initialDate = _birthDate == null
-        ? DateTime(now.year - 18, now.month, now.day)
-        : DateTime.tryParse(_birthDate!) ?? DateTime(now.year - 18);
+    final latestAllowedDate = _yearsAgo(now, 16);
+    final savedDate = DateTime.tryParse(_birthDate ?? '');
+    var initialDate = savedDate ?? _yearsAgo(now, 18);
+    if (initialDate.isAfter(latestAllowedDate)) initialDate = latestAllowedDate;
+    if (initialDate.isBefore(DateTime(1900))) initialDate = DateTime(1900);
+
     final selected = await showDatePicker(
       context: context,
       initialDate: initialDate,
       firstDate: DateTime(1900),
-      lastDate: DateTime(now.year, now.month, now.day),
-      helpText: 'Chọn ngày sinh',
-      cancelText: 'Hủy',
-      confirmText: 'Chọn',
+      lastDate: latestAllowedDate,
+      helpText: 'Ch\u1ecdn ng\u00e0y sinh (t\u1eeb 16 tu\u1ed5i)',
+      cancelText: 'H\u1ee7y',
+      confirmText: 'Ch\u1ecdn',
     );
     if (selected == null || !mounted) return;
     final date = DateTime(selected.year, selected.month, selected.day);
@@ -341,6 +351,13 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
                   controller: _birthDateController,
                   readOnly: true,
                   onTap: _selectBirthDate,
+                  validator: (_) {
+                    final date = DateTime.tryParse(_birthDate ?? '');
+                    if (date != null && date.isAfter(_yearsAgo(DateTime.now(), 16))) {
+                      return 'Ng\u00e0y sinh ph\u1ea3i t\u01b0\u01a1ng \u1ee9ng v\u1edbi \u0111\u1ed9 tu\u1ed5i t\u1eeb 16 tr\u1edf l\u00ean.';
+                    }
+                    return null;
+                  },
                   style: const TextStyle(
                     fontFamily: AppFonts.body,
                     fontSize: 14,
@@ -350,6 +367,7 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
                     'Chọn ngày sinh',
                     Icons.calendar_month_outlined,
                   ).copyWith(
+                    helperText: 'B\u1ea1n c\u1ea7n \u0111\u1ee7 16 tu\u1ed5i tr\u1edf l\u00ean.',
                     suffixIcon: _birthDate == null
                         ? const Icon(Icons.expand_more, color: _grey)
                         : IconButton(
