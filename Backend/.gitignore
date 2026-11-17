@@ -19,6 +19,7 @@ staticfiles/
 .env
 .env.*
 !.env.example
+!api_tests/.env.test.example
 serviceAccountKey*.json
 *firebase-adminsdk*.json
 
@@ -32,3 +33,9 @@ htmlcov/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# API integration test configuration and reports
+api_tests/.env.test
+api_tests/ket_qua/
+api_tests/report*.html
+api_tests/result*.xml
