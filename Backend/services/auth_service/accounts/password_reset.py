@@ -145,6 +145,8 @@ class PasswordResetCompleteView(generics.GenericAPIView):
         cache_key = f'password-reset-token:{nonce_hash}'
         if not email or not cache.get(cache_key):
             raise ValidationError({'reset_token': 'Mã xác minh đã được sử dụng hoặc đã hết hạn.'})
+        if any(character.isspace() for character in password):
+            raise ValidationError({'password': 'M?t kh?u kh?ng ??ng ??nh d?ng, vui l?ng nh?p m?t kh?u kh?c.'})
         if len(password) < 8 or password.isdigit():
             raise ValidationError({'password': 'Mật khẩu cần có ít nhất 8 ký tự và không được chỉ gồm số.'})
 

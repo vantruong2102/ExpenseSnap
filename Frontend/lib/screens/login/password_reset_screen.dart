@@ -400,7 +400,12 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
               icon: Icon(_hidePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 16),
             ),
           ),
-          validator: Validators.password,
+          validator: (value) {
+            if (value != null && RegExp(r'\s').hasMatch(value)) {
+              return 'M?t kh?u kh?ng ??ng ??nh d?ng, vui l?ng nh?p m?t kh?u kh?c.';
+            }
+            return Validators.password(value);
+          },
         ),
       ],
     );
