@@ -14,8 +14,27 @@ class LoginService {
   // Đăng nhập bằng Email và Mật khẩu
   Future<UserCredential> loginWithEmail({required String email, required String password}) async {
     final credential = await _auth.signInWithEmailAndPassword(email: email.trim(), password: password);
+    final user = credential.user;
+    if (user != null && !user.emailVerified) {
+      await _resendVerificationEmail(user);
+      await logout();
+      throw const ApiException(
+        'Email chưa được xác thực. Vui lòng mở hộp thư (kể cả mục Spam) và bấm vào link xác thực rồi đăng nhập lại.',
+      );
+    }
     await _connectBackend();
     return credential;
+  }
+
+  // Gửi lại mail xác thực phòng khi người dùng chưa nhận được mail lúc đăng ký.
+  // Firebase giới hạn số lần gửi, nếu lỗi thì bỏ qua và vẫn báo email chưa xác thực.
+  Future<void> _resendVerificationEmail(User user) async {
+    try {
+      await _auth.setLanguageCode('vi');
+      await user.sendEmailVerification();
+    } on FirebaseAuthException {
+      // Bỏ qua lỗi (vd. too-many-requests)
+    }
   }
 
   // Đăng nhập bằng Google

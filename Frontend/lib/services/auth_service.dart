@@ -42,16 +42,22 @@ class AuthService {
 
   FirebaseAuth get _auth => _authProvider();
 
-  /// Tạo tài khoản Firebase rồi tạo phiên backend. Nếu backend lỗi thì xóa tài khoản Firebase vừa tạo.
-  Future<AppUser> registerWithEmail({required String fullName, required String email, required String password}) async {
+  /// Tạo tài khoản Firebase và gửi mail xác thực, rồi đăng xuất.
+  /// Tài khoản backend chỉ được tạo ở lần đăng nhập đầu tiên sau khi email đã xác thực,
+  /// để email không có thật không tạo được tài khoản dùng được.
+  /// Nếu không gửi được mail xác thực thì xóa tài khoản Firebase vừa tạo.
+  Future<void> registerWithEmail({required String fullName, required String email, required String password}) async {
     final credential = await _auth.createUserWithEmailAndPassword(email: email.trim(), password: password);
+    final user = credential.user;
     try {
-      await credential.user?.updateDisplayName(fullName.trim());
-      return await signInToBackend(fullName: fullName);
-    } on ApiException {
-      await _rollbackFirebaseUser(credential.user);
+      await user?.updateDisplayName(fullName.trim());
+      await _auth.setLanguageCode('vi');
+      await user?.sendEmailVerification();
+    } on FirebaseAuthException {
+      await _rollbackFirebaseUser(user);
       rethrow;
     }
+    await signOut();
   }
 
   /// Dùng người dùng Firebase đang đăng nhập để lấy JWT backend.
