@@ -52,16 +52,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _isSubmitting = true);
     try {
-      // Tạo tài khoản Firebase rồi lấy JWT backend; AuthService tự xóa tài khoản Firebase nếu backend lỗi
+      // Tạo tài khoản Firebase, gửi mail xác thực rồi đăng xuất; phải xác thực email mới đăng nhập được
       await _authService.registerWithEmail(
         fullName: _fullNameController.text,
         email: _emailController.text,
         password: _passwordController.text,
       );
-      // Firebase tự đăng nhập sau khi tạo tài khoản -> đăng xuất để người dùng đăng nhập lại ở màn Đăng nhập
-      await _authService.signOut();
       if (!mounted) return;
-      _showMessage('Đăng ký thành công! Vui lòng đăng nhập.');
+      _showMessage('Đăng ký thành công! Vui lòng mở email và bấm vào link xác thực trước khi đăng nhập.');
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
         (route) => false,
