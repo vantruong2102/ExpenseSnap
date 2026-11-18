@@ -9,6 +9,7 @@ from django.urls import reverse
 from firebase_admin import auth as firebase_auth
 from rest_framework import status
 from rest_framework.test import APITestCase
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.models import FirebaseAccount
 
@@ -123,18 +124,29 @@ class PasswordResetTests(APITestCase):
         cache.clear()
 
     def request_code(self):
-        with mock.patch('accounts.password_reset.firebase_auth.get_user_by_email'):
+        password_user = mock.Mock(provider_data=[mock.Mock(provider_id='password')])
+        with mock.patch(
+            'accounts.password_reset.firebase_auth.get_user_by_email',
+            return_value=password_user,
+        ):
             response = self.client.post(reverse('password-reset-request'), {'email': self.email}, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         return re.search(r'\b(\d{6})\b', mail.outbox[-1].body).group(1)
 
     def test_full_reset_flow_updates_firebase_password(self, _app):
         otp = self.request_code()
-
-        verify = self.client.post(reverse('password-reset-verify'), {'email': self.email, 'otp': otp}, format='json')
+        user = mock.Mock(
+            uid='firebase-uid-1',
+            provider_data=[mock.Mock(provider_id='password')],
+        )
+        with mock.patch('accounts.password_reset.firebase_auth.get_user_by_email', return_value=user):
+            verify = self.client.post(
+                reverse('password-reset-verify'),
+                {'email': self.email, 'otp': otp},
+                format='json',
+            )
         self.assertEqual(verify.status_code, status.HTTP_200_OK)
 
-        user = mock.Mock(uid='firebase-uid-1')
         with mock.patch('accounts.password_reset.firebase_auth.get_user_by_email', return_value=user), \
                 mock.patch('accounts.password_reset.firebase_auth.update_user') as update_mock, \
                 mock.patch('accounts.password_reset.firebase_auth.revoke_refresh_tokens'):
@@ -160,8 +172,17 @@ class PasswordResetTests(APITestCase):
     def test_wrong_otp_is_rejected(self, _app):
         otp = self.request_code()
         wrong = '000000' if otp != '000000' else '111111'
+        password_user = mock.Mock(provider_data=[mock.Mock(provider_id='password')])
 
-        response = self.client.post(reverse('password-reset-verify'), {'email': self.email, 'otp': wrong}, format='json')
+        with mock.patch(
+            'accounts.password_reset.firebase_auth.get_user_by_email',
+            return_value=password_user,
+        ):
+            response = self.client.post(
+                reverse('password-reset-verify'),
+                {'email': self.email, 'otp': wrong},
+                format='json',
+            )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('otp', response.data)
@@ -172,10 +193,38 @@ class PasswordResetTests(APITestCase):
             'accounts.password_reset.firebase_auth.get_user_by_email',
             side_effect=firebase_auth.UserNotFoundError('not found'),
         ):
-            for _ in range(3):
+            for _ in range(5):
                 self.client.post(url, {'email': self.email}, format='json', HTTP_X_FORWARDED_FOR='1.1.1.1')
             blocked = self.client.post(url, {'email': self.email}, format='json', HTTP_X_FORWARDED_FOR='1.1.1.1')
             other_user = self.client.post(url, {'email': self.email}, format='json', HTTP_X_FORWARDED_FOR='2.2.2.2')
 
         self.assertEqual(blocked.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
         self.assertEqual(other_user.status_code, status.HTTP_200_OK)
+
+
+class TokenRefreshTests(APITestCase):
+    url = reverse('auth-token-refresh')
+
+    def test_valid_refresh_token_returns_new_access_token(self):
+        user = User.objects.create_user(username='refresh@example.com', email='refresh@example.com')
+        refresh_token = str(RefreshToken.for_user(user))
+
+        response = self.client.post(self.url, {'refresh': refresh_token}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('access', response.data)
+
+    def test_invalid_refresh_token_returns_401(self):
+        response = self.client.post(self.url, {'refresh': 'not-a-valid-token'}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_refresh_token_for_deleted_user_returns_401(self):
+        user = User.objects.create_user(username='deleted@example.com', email='deleted@example.com')
+        refresh_token = str(RefreshToken.for_user(user))
+        user.delete()
+        self.client.raise_request_exception = False
+
+        response = self.client.post(self.url, {'refresh': refresh_token}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
