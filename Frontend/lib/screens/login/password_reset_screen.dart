@@ -70,10 +70,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _busy = true);
     try {
-      final token = await _service.verifyCode(
-        email: _emailController.text,
-        code: _otpController.text,
-      );
+      final token = await _service.verifyCode(email: _emailController.text, code: _otpController.text);
       if (!mounted) return;
       setState(() {
         _resetToken = token;
@@ -90,10 +87,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
     if (!_formKey.currentState!.validate() || _resetToken == null) return;
     setState(() => _busy = true);
     try {
-      await _service.setNewPassword(
-        resetToken: _resetToken!,
-        password: _passwordController.text,
-      );
+      await _service.setNewPassword(resetToken: _resetToken!, password: _passwordController.text);
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } on ApiException catch (error) {
@@ -104,16 +98,16 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
   }
 
   String get _title => switch (_step) {
-        0 => 'Quên mật khẩu?',
-        1 => 'Nhập mã OTP',
-        _ => 'Tạo mật khẩu mới',
-      };
+    0 => 'Quên mật khẩu?',
+    1 => 'Nhập mã OTP',
+    _ => 'Tạo mật khẩu mới',
+  };
 
   String get _subtitle => switch (_step) {
-        0 => 'Nhập email của tài khoản đăng ký bằng email và mật khẩu. Tài khoản Google không dùng chức năng đặt lại mật khẩu này.',
-        1 => 'Nhập mã 6 số đã gửi tới email của bạn.',
-        _ => 'Tạo mật khẩu mới để tiếp tục sử dụng sổ hóa đơn.',
-      };
+    0 => 'Nhập email của tài khoản đăng ký bằng email và mật khẩu. Tài khoản Google không dùng chức năng đặt lại mật khẩu này.',
+    1 => 'Nhập mã 6 số đã gửi tới email của bạn.',
+    _ => 'Tạo mật khẩu mới để tiếp tục sử dụng sổ hóa đơn.',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -127,12 +121,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
               constraints: const BoxConstraints(maxWidth: 390),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: [
-                  _topBar(),
-                  _receipt(),
-                  const SizedBox(height: 14),
-                  _supportFooter(),
-                ],
+                children: [_topBar(), _receipt(), const SizedBox(height: 14), _supportFooter()],
               ),
             ),
           ),
@@ -163,11 +152,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
           ),
           const Text(
             'ES·04',
-            style: TextStyle(
-              fontFamily: AppFonts.mono,
-              fontSize: 8,
-              color: AppColors.textSecondary,
-            ),
+            style: TextStyle(fontFamily: AppFonts.mono, fontSize: 8, color: AppColors.textSecondary),
           ),
           const SizedBox(width: 8),
         ],
@@ -183,9 +168,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
         color: const Color(0xFFFFFEFC),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0xFFEAE4DC)),
-        boxShadow: const [
-          BoxShadow(color: Color(0x10000000), blurRadius: 14, offset: Offset(0, 5)),
-        ],
+        boxShadow: const [BoxShadow(color: Color(0x10000000), blurRadius: 14, offset: Offset(0, 5))],
       ),
       child: Stack(
         clipBehavior: Clip.none,
@@ -232,11 +215,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
                   const SizedBox(height: 12),
                   _sentNotice(),
                 ],
-                if (_step == 2) ...[
-                  _passwordField(),
-                  const SizedBox(height: 13),
-                  _confirmField(),
-                ],
+                if (_step == 2) ...[_passwordField(), const SizedBox(height: 13), _confirmField()],
                 const SizedBox(height: 15),
                 SizedBox(
                   height: 44,
@@ -283,16 +262,16 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
   }
 
   IconData get _buttonIcon => switch (_step) {
-        0 => Icons.mark_email_read_outlined,
-        1 => Icons.verified_outlined,
-        _ => Icons.lock_reset_outlined,
-      };
+    0 => Icons.mark_email_read_outlined,
+    1 => Icons.verified_outlined,
+    _ => Icons.lock_reset_outlined,
+  };
 
   String get _buttonLabel => switch (_step) {
-        0 => 'Gửi mã OTP',
-        1 => 'Xác nhận mã OTP',
-        _ => 'Đặt mật khẩu mới',
-      };
+    0 => 'Gửi mã OTP',
+    1 => 'Xác nhận mã OTP',
+    _ => 'Đặt mật khẩu mới',
+  };
 
   Widget _receiptMeta() {
     return Row(
@@ -356,7 +335,10 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
           initialValue: _emailController.text.trim(),
           readOnly: true,
           style: const TextStyle(fontFamily: AppFonts.mono, fontSize: 10),
-          decoration: _fieldDecoration('', prefix: const Text('mail  ', style: TextStyle(fontFamily: AppFonts.mono, fontSize: 11))),
+          decoration: _fieldDecoration(
+            '',
+            prefix: const Text('mail  ', style: TextStyle(fontFamily: AppFonts.mono, fontSize: 11)),
+          ),
         ),
       ],
     );
@@ -375,9 +357,8 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
           textAlign: TextAlign.center,
           style: const TextStyle(fontFamily: AppFonts.mono, fontSize: 20, letterSpacing: 9),
           decoration: _fieldDecoration('000000').copyWith(counterText: ''),
-          validator: (value) => value == null || !RegExp(r'^\d{6}$').hasMatch(value.trim())
-              ? 'Nhập đúng mã gồm 6 chữ số'
-              : null,
+          validator: (value) =>
+              value == null || !RegExp(r'^\d{6}$').hasMatch(value.trim()) ? 'Nhập đúng mã gồm 6 chữ số' : null,
         ),
       ],
     );
@@ -402,7 +383,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
           ),
           validator: (value) {
             if (value != null && RegExp(r'\s').hasMatch(value)) {
-              return 'M?t kh?u kh?ng ??ng ??nh d?ng, vui l?ng nh?p m?t kh?u kh?c.';
+              return 'Mật khẩu không đứng định dạng.';
             }
             return Validators.password(value);
           },
@@ -482,16 +463,33 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('THÔNG BÁO XÁC THỰC', style: TextStyle(fontFamily: AppFonts.mono, fontSize: 8, fontWeight: FontWeight.w700, color: AppColors.ink)),
+                Text(
+                  'THÔNG BÁO XÁC THỰC',
+                  style: TextStyle(
+                    fontFamily: AppFonts.mono,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink,
+                  ),
+                ),
                 SizedBox(height: 3),
-                Text('Đã gửi mã OTP. Hãy kiểm tra hộp thư của bạn.', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, height: 1.4)),
+                Text(
+                  'Đã gửi mã OTP. Hãy kiểm tra hộp thư của bạn.',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, height: 1.4),
+                ),
                 SizedBox(height: 3),
-                Text('Mã có hiệu lực trong 5 phút. Kiểm tra cả thư mục Spam nếu chưa thấy.', style: TextStyle(fontSize: 8, color: AppColors.textSecondary, height: 1.45)),
+                Text(
+                  'Mã có hiệu lực trong 5 phút. Kiểm tra cả thư mục Spam nếu chưa thấy.',
+                  style: TextStyle(fontSize: 8, color: AppColors.textSecondary, height: 1.45),
+                ),
               ],
             ),
           ),
           const SizedBox(width: 5),
-          const Text('Vừa xong', style: TextStyle(fontFamily: AppFonts.mono, fontSize: 7, color: AppColors.textSecondary)),
+          const Text(
+            'Vừa xong',
+            style: TextStyle(fontFamily: AppFonts.mono, fontSize: 7, color: AppColors.textSecondary),
+          ),
         ],
       ),
     );
@@ -503,7 +501,12 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: Text('THUYẾT MINH XỬ LÝ\nPHƯƠNG THỨC', style: TextStyle(fontFamily: AppFonts.mono, fontSize: 7, height: 1.6, color: AppColors.textSecondary))),
+            Expanded(
+              child: Text(
+                'THUYẾT MINH XỬ LÝ\nPHƯƠNG THỨC',
+                style: TextStyle(fontFamily: AppFonts.mono, fontSize: 7, height: 1.6, color: AppColors.textSecondary),
+              ),
+            ),
             SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -515,7 +518,10 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
           ],
         ),
         SizedBox(height: 12),
-        Text('EXPENSESNAP · SỔ CHI TIÊU CÁ NHÂN VIỆT NAM', style: TextStyle(fontFamily: AppFonts.mono, fontSize: 6, letterSpacing: 0.45, color: AppColors.textSecondary)),
+        Text(
+          'EXPENSESNAP · SỔ CHI TIÊU CÁ NHÂN VIỆT NAM',
+          style: TextStyle(fontFamily: AppFonts.mono, fontSize: 6, letterSpacing: 0.45, color: AppColors.textSecondary),
+        ),
       ],
     );
   }
@@ -528,8 +534,15 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
         const Text('Cần trợ giúp khẩn cấp? ', style: TextStyle(fontSize: 9, color: AppColors.textSecondary)),
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-          child: const Text('Liên hệ thu hồi hỗ trợ', style: TextStyle(fontSize: 9, decoration: TextDecoration.underline)),
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          child: const Text(
+            'Liên hệ thu hồi hỗ trợ',
+            style: TextStyle(fontSize: 9, decoration: TextDecoration.underline),
+          ),
         ),
       ],
     );
@@ -574,9 +587,16 @@ class _EnvelopeSeal extends StatelessWidget {
                   child: Container(
                     width: 39,
                     height: 39,
-                    decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0x88D64933), width: 0.7)),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0x88D64933), width: 0.7),
+                    ),
                     child: const Center(
-                      child: Text('EXP\nSNAP', textAlign: TextAlign.center, style: TextStyle(fontFamily: AppFonts.mono, fontSize: 6, height: 1.2, color: AppColors.ink)),
+                      child: Text(
+                        'EXP\nSNAP',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontFamily: AppFonts.mono, fontSize: 6, height: 1.2, color: AppColors.ink),
+                      ),
                     ),
                   ),
                 ),
