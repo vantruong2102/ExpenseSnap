@@ -180,7 +180,11 @@ class _SecurityScreenState extends State<SecurityScreen> {
             validator: (value) {
               final password = value ?? '';
               if (RegExp(r'\s').hasMatch(password)) {
+<<<<<<< Updated upstream
                 return 'Mật khẩu không đúng định dạng.';
+=======
+                return 'Mật khẩu không đứng định dạng.';
+>>>>>>> Stashed changes
               }
               if (password.length < 8 || password.trim().isEmpty) {
                 return 'Mật khẩu cần có ít nhất 8 ký tự.';
