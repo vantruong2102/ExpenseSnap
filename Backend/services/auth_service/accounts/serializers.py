@@ -40,6 +40,12 @@ class FirebaseLoginSerializer(serializers.Serializer):
             if settings.DEBUG:
                 message = f'{message} ({type(error).__name__}: {error})'
             raise serializers.ValidationError(message) from error
+        # Tài khoản email/mật khẩu phải xác thực email; tài khoản Google không cần kiểm tra
+        sign_in_provider = claims.get('firebase', {}).get('sign_in_provider')
+        if sign_in_provider == 'password' and claims.get('email_verified') is not True:
+            raise serializers.ValidationError(
+                {'email': 'Email chưa được xác thực. Vui lòng mở hộp thư và bấm link xác thực.'}
+            )
         if not claims.get('email'):
             raise serializers.ValidationError('Tài khoản Firebase chưa có email.')
         return claims

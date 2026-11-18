@@ -14,7 +14,14 @@ from accounts.models import FirebaseAccount
 
 User = get_user_model()
 
-CLAIMS = {'uid': 'firebase-uid-1', 'email': 'Tri@Example.com', 'name': 'Google Name'}
+CLAIMS = {
+    'uid': 'firebase-uid-1',
+    'email': 'Tri@Example.com',
+    'name': 'Google Name',
+    'email_verified': True,
+    'firebase': {'sign_in_provider': 'password'},
+}
+UNVERIFIED_EMAIL_MESSAGE = 'Email chưa được xác thực. Vui lòng mở hộp thư và bấm link xác thực.'
 
 
 @mock.patch('accounts.serializers.get_firebase_app')
@@ -64,6 +71,26 @@ class FirebaseLoginTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('id_token', response.data)
         self.assertFalse(User.objects.exists())
+
+    def test_rejects_unverified_email_password_account(self, verify_mock, _app):
+        verify_mock.return_value = {**CLAIMS, 'email_verified': False}
+
+        response = self.client.post(self.url, {'id_token': 'token'}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['id_token']['email'], UNVERIFIED_EMAIL_MESSAGE)
+        self.assertFalse(User.objects.exists())
+        self.assertFalse(FirebaseAccount.objects.exists())
+
+    def test_google_account_without_email_verified_can_login(self, verify_mock, _app):
+        claims = {key: value for key, value in CLAIMS.items() if key != 'email_verified'}
+        verify_mock.return_value = {**claims, 'firebase': {'sign_in_provider': 'google.com'}}
+
+        response = self.client.post(self.url, {'id_token': 'token'}, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['user']['email'], 'tri@example.com')
+        self.assertTrue(User.objects.filter(username='tri@example.com').exists())
 
     def test_returned_access_token_works_for_me(self, _verify, _app):
         login = self.client.post(self.url, {'id_token': 'token'}, format='json')

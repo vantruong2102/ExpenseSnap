@@ -102,9 +102,16 @@ class AuthService {
   }
 
   /// Khôi phục phiên backend dựa trên người dùng Firebase đã được lưu trên thiết bị.
+  /// Tài khoản email/mật khẩu chưa xác thực email thì đăng xuất, không tạo phiên backend.
   Future<bool> restoreSession() async {
-    if (_auth.currentUser == null) {
+    final user = _auth.currentUser;
+    if (user == null) {
       _session.clear();
+      return false;
+    }
+
+    if (!await _isEmailVerifiedOrNotRequired(user)) {
+      await signOut();
       return false;
     }
 
@@ -115,6 +122,21 @@ class AuthService {
       await signOut();
       return false;
     }
+  }
+
+  /// Chỉ tài khoản email/mật khẩu cần xác thực email; tài khoản Google giữ nguyên hành vi cũ.
+  /// Gọi reload() để lấy trạng thái emailVerified mới nhất (người dùng có thể vừa bấm link xác thực).
+  Future<bool> _isEmailVerifiedOrNotRequired(User user) async {
+    final usesPassword = user.providerData.any((info) => info.providerId == 'password');
+    if (!usesPassword) return true;
+
+    try {
+      await user.reload();
+    } on FirebaseAuthException catch (error) {
+      // Mất mạng thì dùng trạng thái đã lưu; lỗi khác (tài khoản bị xóa/khóa) thì coi như chưa xác thực
+      if (error.code != 'network-request-failed') return false;
+    }
+    return _auth.currentUser?.emailVerified ?? false;
   }
 
   Future<void> signOut() async {

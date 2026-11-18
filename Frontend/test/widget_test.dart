@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/utils/validators.dart';
@@ -51,6 +52,48 @@ class _FakeAuthService extends AuthService {
   Future<AppUser> signInToBackend({String? fullName, bool forceRefresh = false}) async {
     AuthSession.instance.accessToken = renewedToken;
     return const AppUser(id: 1, email: 'tri@example.com', fullName: 'Tri');
+  }
+}
+
+class _FakeUserInfo extends Fake implements UserInfo {
+  _FakeUserInfo(this.providerId);
+
+  @override
+  final String providerId;
+}
+
+class _FakeFirebaseUser extends Fake implements User {
+  _FakeFirebaseUser({required String providerId, required this.emailVerified})
+    : providerData = [_FakeUserInfo(providerId)];
+
+  @override
+  final List<UserInfo> providerData;
+
+  @override
+  final bool emailVerified;
+
+  int reloadCount = 0;
+
+  @override
+  Future<void> reload() async => reloadCount++;
+
+  @override
+  Future<String?> getIdToken([bool forceRefresh = false]) async => 'firebase-id-token';
+}
+
+class _FakeFirebaseAuth extends Fake implements FirebaseAuth {
+  _FakeFirebaseAuth(this._user);
+
+  User? _user;
+  int signOutCount = 0;
+
+  @override
+  User? get currentUser => _user;
+
+  @override
+  Future<void> signOut() async {
+    signOutCount++;
+    _user = null;
   }
 }
 
@@ -168,6 +211,78 @@ void main() {
         throwsA(isA<ApiException>().having((e) => e.message, 'message', 'Token hết hạn')),
       );
       expect(session.isSignedIn, isFalse);
+    });
+  });
+
+  group('AuthService.restoreSession', () {
+    MockClient backendClient(List<String> calls) {
+      return MockClient((request) async {
+        calls.add(request.url.path);
+        return http.Response(
+          jsonEncode({
+            'user': {'id': 7, 'email': 'tri@example.com', 'full_name': 'Tri'},
+            'access': 'access-token',
+            'refresh': 'refresh-token',
+          }),
+          200,
+        );
+      });
+    }
+
+    test('signs out unverified email/password user without calling backend', () async {
+      final user = _FakeFirebaseUser(providerId: 'password', emailVerified: false);
+      final auth = _FakeFirebaseAuth(user);
+      final backendCalls = <String>[];
+      final session = AuthSession.instance..clear();
+
+      final restored = await AuthService(
+        client: backendClient(backendCalls),
+        session: session,
+        firebaseAuth: auth,
+      ).restoreSession();
+
+      expect(restored, isFalse);
+      expect(user.reloadCount, 1);
+      expect(auth.signOutCount, 1);
+      expect(backendCalls, isEmpty);
+      expect(session.isSignedIn, isFalse);
+    });
+
+    test('restores verified email/password user', () async {
+      final user = _FakeFirebaseUser(providerId: 'password', emailVerified: true);
+      final backendCalls = <String>[];
+      final session = AuthSession.instance..clear();
+
+      final restored = await AuthService(
+        client: backendClient(backendCalls),
+        session: session,
+        firebaseAuth: _FakeFirebaseAuth(user),
+      ).restoreSession();
+
+      expect(restored, isTrue);
+      expect(user.reloadCount, 1);
+      expect(backendCalls, ['/api/auth/firebase/']);
+      expect(session.accessToken, 'access-token');
+      session.clear();
+    });
+
+    test('restores Google user without checking email verification', () async {
+      final user = _FakeFirebaseUser(providerId: 'google.com', emailVerified: false);
+      final auth = _FakeFirebaseAuth(user);
+      final backendCalls = <String>[];
+      final session = AuthSession.instance..clear();
+
+      final restored = await AuthService(
+        client: backendClient(backendCalls),
+        session: session,
+        firebaseAuth: auth,
+      ).restoreSession();
+
+      expect(restored, isTrue);
+      expect(user.reloadCount, 0);
+      expect(auth.signOutCount, 0);
+      expect(backendCalls, ['/api/auth/firebase/']);
+      session.clear();
     });
   });
 
